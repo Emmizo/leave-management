@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: 'mysql:latest'
+    environment:
+      - 'MYSQL_DATABASE=hr_management'
+      - 'MYSQL_ROOT_PASSWORD=Kwizera23'
+    ports:
+      - '3307:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - '5454:5454'
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/hr_management
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=Kwizera23
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
