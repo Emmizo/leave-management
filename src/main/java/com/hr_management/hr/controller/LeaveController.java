@@ -4,13 +4,11 @@ import com.hr_management.hr.entity.User;
 import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.LeaveRequestDto;
-import com.hr_management.hr.model.LoginRequestDto;
+import com.hr_management.hr.model.LeaveStatusUpdateDto;
 import com.hr_management.hr.service.EmployeeService;
 import com.hr_management.hr.service.LeaveService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,6 +25,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collection;
 import java.util.List;
+import java.security.Principal;
+
+import com.hr_management.hr.entity.Employee;
+import com.hr_management.hr.exception.ResourceNotFoundException;
+import com.hr_management.hr.model.LeaveBalanceDto;
+import com.hr_management.hr.repository.EmployeeRepository;
+import com.hr_management.hr.repository.UserRepository;
 
 @RestController
 @RequestMapping("/api/leaves")
@@ -35,10 +40,14 @@ public class LeaveController {
 
     private final LeaveService leaveService;
     private final EmployeeService employeeService;
+    private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
 
-    public LeaveController(LeaveService leaveService, EmployeeService employeeService) {
+    public LeaveController(LeaveService leaveService, EmployeeService employeeService, UserRepository userRepository, EmployeeRepository employeeRepository) {
         this.leaveService = leaveService;
         this.employeeService = employeeService;
+        this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
     }
 
     @GetMapping("/history")
@@ -102,17 +111,15 @@ public class LeaveController {
                security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Leave status updated successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid status"),
+        @ApiResponse(responseCode = "400", description = "Invalid status or missing rejection reason"),
         @ApiResponse(responseCode = "401", description = "User not authenticated"),
         @ApiResponse(responseCode = "403", description = "User not authorized"),
         @ApiResponse(responseCode = "404", description = "Leave request not found")
     })
     @PreAuthorize("hasRole('ADMIN') or hasRole('HR_MANAGER')")
     public ResponseEntity<LeaveDto> updateLeaveStatus(
-            @Parameter(description = "ID of the leave request") @PathVariable Long leaveId,
-            @Parameter(description = "New status (APPROVED/REJECTED)") @RequestParam String status,
-            @Parameter(description = "Reason for rejection (required if status is REJECTED)") @RequestParam(required = false) String rejectionReason) {
-        return ResponseEntity.ok(leaveService.updateLeaveStatus(leaveId, status, rejectionReason));
+            @Parameter(description = "Leave status update details") @RequestBody LeaveStatusUpdateDto statusUpdate) {
+        return ResponseEntity.ok(leaveService.updateLeaveStatus(statusUpdate.getLeaveId(), statusUpdate));
     }
 
     @GetMapping("/pending")
@@ -174,6 +181,20 @@ public class LeaveController {
         Long employeeId = getEmployeeIdFromUser(currentUser);
         leaveService.cancelLeaveRequest(leaveId, employeeId); 
         return ResponseEntity.ok().build();
+    }
+    
+    @GetMapping("/balances")
+    @Operation(summary = "Get leave balances for the current employee")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<List<LeaveBalanceDto>> getLeaveBalances(Principal principal) {
+        User user = userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", 0L));
+        
+        Employee employee = employeeRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "user", user.getId()));
+        
+        List<LeaveBalanceDto> balances = leaveService.getEmployeeLeaveBalances(employee.getId());
+        return ResponseEntity.ok(balances);
     }
     
     private Long getEmployeeIdFromUser(User user) {

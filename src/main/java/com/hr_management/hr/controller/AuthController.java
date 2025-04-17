@@ -37,6 +37,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Authentication management APIs")
+@SecurityRequirement(name = "bearerAuth") // Global security requirement
 public class AuthController {
 
     private final UserService userService;
@@ -60,16 +61,8 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "Login user", 
-               description = "Authenticates user and returns JWT token with user details",
-               requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                   description = "User credentials for login",
-                   required = true,
-                   content = @Content(
-                       mediaType = "application/json",
-                       schema = @Schema(implementation = LoginRequestDto.class)
-                   )
-               )
-              )
+               description = "Authenticates user and returns JWT token with user details. This endpoint is publicly accessible and does not require authentication.",
+               security = {}) // Override global security requirement
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Login successful"),
         @ApiResponse(responseCode = "401", description = "Invalid credentials")

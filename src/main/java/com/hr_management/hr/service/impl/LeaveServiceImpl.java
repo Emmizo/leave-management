@@ -1,11 +1,13 @@
 package com.hr_management.hr.service.impl;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,16 +17,22 @@ import com.hr_management.hr.entity.Leave;
 import com.hr_management.hr.entity.User;
 import com.hr_management.hr.entity.Role;
 import com.hr_management.hr.enums.LeaveStatus;
+import com.hr_management.hr.enums.LeaveType;
 import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.LeaveRequestDto;
 import com.hr_management.hr.model.UserDto;
+import com.hr_management.hr.model.LeaveStatusUpdateDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.LeaveRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmailService;
 import com.hr_management.hr.service.FileStorageService;
 import com.hr_management.hr.service.LeaveService;
+import com.hr_management.hr.exception.LeaveAPIException;
+import com.hr_management.hr.repository.LeaveTypeConfigRepository;
+import com.hr_management.hr.entity.LeaveTypeConfig;
+import com.hr_management.hr.model.LeaveBalanceDto;
 
 @Service
 public class LeaveServiceImpl implements LeaveService {
@@ -34,13 +42,21 @@ public class LeaveServiceImpl implements LeaveService {
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final LeaveTypeConfigRepository leaveTypeConfigRepository;
 
-    public LeaveServiceImpl(LeaveRepository leaveRepository, EmployeeRepository employeeRepository, FileStorageService fileStorageService, EmailService emailService, UserRepository userRepository) {
+    public LeaveServiceImpl(
+            LeaveRepository leaveRepository,
+            EmployeeRepository employeeRepository,
+            FileStorageService fileStorageService,
+            EmailService emailService,
+            UserRepository userRepository,
+            LeaveTypeConfigRepository leaveTypeConfigRepository) {
         this.leaveRepository = leaveRepository;
         this.employeeRepository = employeeRepository;
         this.fileStorageService = fileStorageService;
         this.emailService = emailService;
         this.userRepository = userRepository;
+        this.leaveTypeConfigRepository = leaveTypeConfigRepository;
     }
 
     @Override
@@ -49,6 +65,13 @@ public class LeaveServiceImpl implements LeaveService {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 
+        // Calculate numberOfDays
+        long daysBetween = ChronoUnit.DAYS.between(leaveRequest.getStartDate(), leaveRequest.getEndDate());
+        int numberOfDays = (int) daysBetween + 1; // Add 1 for inclusive days
+
+        // Validate leave request based on type and balance
+        validateLeaveRequest(employee, leaveRequest.getType(), numberOfDays, supportingDocument);
+
         Leave leave = new Leave();
         leave.setEmployee(employee);
         leave.setStartDate(leaveRequest.getStartDate());
@@ -56,20 +79,14 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setReason(leaveRequest.getReason());
         leave.setLeaveType(leaveRequest.getType());
         leave.setStatus(LeaveStatus.PENDING);
-        // applicationDate has a default value in the entity
-
-        // Calculate numberOfDays
-        long daysBetween = ChronoUnit.DAYS.between(leaveRequest.getStartDate(), leaveRequest.getEndDate());
-        leave.setNumberOfDays((int) daysBetween + 1); // Add 1 for inclusive days
+        leave.setNumberOfDays(numberOfDays);
 
         // Store the document if provided
         if (supportingDocument != null && !supportingDocument.isEmpty()) {
             try {
-                // Store file in a subdirectory named after employee ID for organization
                 String filePath = fileStorageService.storeFile(supportingDocument, "employee_" + employeeId);
                 leave.setSupportingDocumentPath(filePath);
             } catch (IOException e) {
-                // Handle file storage exception appropriately
                 throw new RuntimeException("Failed to store supporting document for leave request", e);
             }
         }
@@ -86,15 +103,14 @@ public class LeaveServiceImpl implements LeaveService {
             savedLeave.getNumberOfDays(),
             savedLeave.getReason()
         );
-        // Ensure employee email is not null before sending
+
         if (employee.getEmail() != null) {
             emailService.sendSimpleMessage(employee.getEmail(), empSubject, empText);
         } else {
-             // Log a warning or handle cases where employee email might be missing
             System.err.println("Warning: Employee with ID " + employee.getId() + " has no email address. Cannot send leave submission notification.");
         }
 
-        // 2. To Admins/HR Managers
+        // Send notification to Admins/HR Managers
         String adminSubject = "New Leave Request Submitted by " + employee.getFirstName() + " " + employee.getLastName();
         String adminText = String.format(
             "A new leave request has been submitted by %s %s (ID: %d).\n\nDates: %s to %s (%d days)\nType: %s\nReason: %s\n\nPlease review the request in the system.",
@@ -103,7 +119,6 @@ public class LeaveServiceImpl implements LeaveService {
             savedLeave.getLeaveType(), savedLeave.getReason()
         );
 
-        // TODO: Optimize this lookup later if many users exist (e.g., dedicated repository method)
         List<User> adminsAndHr = userRepository.findAll().stream()
                 .filter(user -> user.getRole() == Role.ADMIN || user.getRole() == Role.HR_MANAGER)
                 .toList();
@@ -119,9 +134,53 @@ public class LeaveServiceImpl implements LeaveService {
         return convertToDto(savedLeave);
     }
 
+    private void validateLeaveRequest(Employee employee, LeaveType leaveType, int numberOfDays, MultipartFile supportingDocument) {
+        // Get leave type configuration
+        LeaveTypeConfig leaveTypeConfig = leaveTypeConfigRepository.findByLeaveTypeAndIsActiveTrue(leaveType)
+                .orElseThrow(() -> new LeaveAPIException(
+                    HttpStatus.BAD_REQUEST,
+                    "Leave type " + leaveType + " is not configured or is inactive."
+                ));
+
+        // Get the current year's leaves
+        int currentYear = LocalDate.now().getYear();
+        List<Leave> currentYearLeaves = leaveRepository.findByEmployeeId(employee.getId()).stream()
+                .filter(leave -> leave.getStartDate().getYear() == currentYear 
+                        && leave.getStatus() == LeaveStatus.APPROVED
+                        && leave.getLeaveType() == leaveType)
+                .toList();
+
+        // Calculate used leave days for the current year for this specific leave type
+        int usedLeaveDays = currentYearLeaves.stream()
+                .mapToInt(Leave::getNumberOfDays)
+                .sum();
+
+        // Check if the request exceeds the annual limit for this leave type
+        if (usedLeaveDays + numberOfDays > leaveTypeConfig.getAnnualLimit()) {
+            throw new LeaveAPIException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Insufficient leave balance for %s. You have used %d days out of %d days allowed per year. %s",
+                    leaveType,
+                    usedLeaveDays,
+                    leaveTypeConfig.getAnnualLimit(),
+                    leaveTypeConfig.getDescription())
+            );
+        }
+
+        // Check if document is required
+        if (leaveTypeConfig.getRequiresDocument() && (supportingDocument == null || supportingDocument.isEmpty())) {
+            throw new LeaveAPIException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Supporting document is required for %s requests. %s",
+                    leaveType,
+                    leaveTypeConfig.getDescription())
+            );
+        }
+    }
+
     @Override
     @Transactional
-    public LeaveDto updateLeaveStatus(Long leaveId, String status, String rejectionReason) {
+    public LeaveDto updateLeaveStatus(Long leaveId, LeaveStatusUpdateDto statusUpdate) {
         Leave leave = leaveRepository.findById(leaveId)
                 .orElseThrow(() -> new RuntimeException("Leave request not found"));
 
@@ -131,7 +190,7 @@ public class LeaveServiceImpl implements LeaveService {
         }
 
         LeaveStatus oldStatus = leave.getStatus();
-        LeaveStatus newStatus = LeaveStatus.valueOf(status.toUpperCase());
+        LeaveStatus newStatus = LeaveStatus.valueOf(statusUpdate.getStatus().toUpperCase());
         leave.setStatus(newStatus);
         
         String emailSubject = "";
@@ -139,11 +198,11 @@ public class LeaveServiceImpl implements LeaveService {
         boolean sendEmail = false;
 
         if (newStatus == LeaveStatus.REJECTED) {
-             if (rejectionReason == null || rejectionReason.isBlank()) {
+             if (statusUpdate.getRejectionReason() == null || statusUpdate.getRejectionReason().isBlank()) {
                  throw new IllegalArgumentException("Rejection reason is required when rejecting a leave request.");
              }
-            leave.setReason(rejectionReason);
-            leave.setRejectionReason(rejectionReason);
+            leave.setReason(statusUpdate.getRejectionReason());
+            leave.setRejectionReason(statusUpdate.getRejectionReason());
             
             emailSubject = "Leave Request Rejected";
             emailText = String.format(
@@ -155,7 +214,7 @@ public class LeaveServiceImpl implements LeaveService {
              );
              sendEmail = true;
 
-        } else if (newStatus == LeaveStatus.APPROVED && oldStatus != LeaveStatus.APPROVED) {
+        } else if (newStatus == LeaveStatus.APPROVED) {
              leave.setRejectionReason(null);
              
              emailSubject = "Leave Request Approved";
@@ -235,6 +294,78 @@ public class LeaveServiceImpl implements LeaveService {
         // TODO: Consider deleting the supporting document when cancelling?
 
         leaveRepository.delete(leave);
+    }
+
+    @Override
+    public List<LeaveBalanceDto> getEmployeeLeaveBalances(Long employeeId) {
+        // Get all leave type configurations
+        List<LeaveTypeConfig> allConfigs = leaveTypeConfigRepository.findAll();
+        
+        // Get employee's approved leaves for the current year
+        int currentYear = LocalDate.now().getYear();
+        List<Leave> approvedLeaves = leaveRepository.findByEmployeeId(employeeId).stream()
+                .filter(leave -> leave.getStartDate().getYear() == currentYear 
+                        && leave.getStatus() == LeaveStatus.APPROVED)
+                .toList();
+
+        return allConfigs.stream()
+                .filter(LeaveTypeConfig::getIsActive)
+                .map(config -> {
+                    // Calculate used days for this leave type
+                    int usedDays = approvedLeaves.stream()
+                            .filter(leave -> leave.getLeaveType() == config.getLeaveType())
+                            .mapToInt(Leave::getNumberOfDays)
+                            .sum();
+                    
+                    // Calculate remaining days
+                    int remainingDays = config.getAnnualLimit() - usedDays;
+                    
+                    // Get pending leaves for this type
+                    long pendingDays = leaveRepository.findByEmployeeId(employeeId).stream()
+                            .filter(leave -> 
+                                leave.getStartDate().getYear() == currentYear &&
+                                leave.getStatus() == LeaveStatus.PENDING &&
+                                leave.getLeaveType() == config.getLeaveType())
+                            .mapToInt(Leave::getNumberOfDays)
+                            .sum();
+
+                    // Determine status text
+                    String status;
+                    if (pendingDays > 0) {
+                        status = String.format("Available (%d days pending approval)", pendingDays);
+                    } else {
+                        status = "Available";
+                    }
+
+                    // Determine color code based on leave type
+                    String colorCode = switch (config.getLeaveType()) {
+                        case PTO -> "#1976D2";  // Blue
+                        case SICK -> "#2E7D32";    // Green
+                        case BEREAVEMENT -> "#00BCD4"; // Cyan
+                        case MATERNITY -> "#FFC107";     // Yellow
+                        default -> "#757575";      // Grey
+                    };
+
+                    return LeaveBalanceDto.builder()
+                            .leaveType(config.getLeaveType())
+                            .name(formatLeaveName(config.getLeaveType()))
+                            .daysAvailable(remainingDays)
+                            .daysAllowed(config.getAnnualLimit())
+                            .status(status)
+                            .colorCode(colorCode)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private String formatLeaveName(LeaveType leaveType) {
+        return switch (leaveType) {
+            case PTO -> "Annual Leave";
+            case SICK -> "Sick Leave";
+            case BEREAVEMENT -> "Compassionate";
+            case MATERNITY -> "Maternity";
+            default -> leaveType.toString();
+        };
     }
 
     private LeaveDto convertToDto(Leave leave) {

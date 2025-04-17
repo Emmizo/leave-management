@@ -1,26 +1,24 @@
 package com.hr_management.hr.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-public class LeaveAPIException extends RuntimeException{
+@ResponseStatus(value = HttpStatus.BAD_REQUEST)
+public class LeaveAPIException extends RuntimeException {
+    
     private HttpStatus status;
-    private String message;
+    
+    public LeaveAPIException(String message) {
+        super(message);
+        this.status = HttpStatus.BAD_REQUEST;
+    }
     
     public LeaveAPIException(HttpStatus status, String message) {
-        this.status = status;
-        this.message = message;
-    }
-    public LeaveAPIException(String message, HttpStatus status, String message2) {
         super(message);
         this.status = status;
-        message = message2;
     }
+    
     public HttpStatus getStatus() {
         return status;
     }
-    public String getMessage() {
-        return message;
-    }
-
-    
 }
