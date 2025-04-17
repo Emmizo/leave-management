@@ -20,6 +20,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
 
 @Data
 @Builder
@@ -48,7 +50,13 @@ public class User implements UserDetails {
     private String provider;
     private String providerId;
 
-    @OneToOne(mappedBy = "user")
+    private String microsoftId;
+    
+    @Builder.Default
+    @Column(columnDefinition = "BOOLEAN DEFAULT true")
+    private boolean enabled = true;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Employee employee;
 
     @Override
@@ -83,6 +91,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 } 
