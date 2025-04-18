@@ -35,8 +35,12 @@ import com.hr_management.hr.exception.LeaveAPIException;
 import com.hr_management.hr.repository.LeaveTypeConfigRepository;
 import com.hr_management.hr.entity.LeaveTypeConfig;
 import com.hr_management.hr.model.LeaveBalanceDto;
+import com.hr_management.hr.service.EmailTemplateService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@RequiredArgsConstructor
 public class LeaveServiceImpl implements LeaveService {
 
     private final LeaveRepository leaveRepository;
@@ -45,21 +49,7 @@ public class LeaveServiceImpl implements LeaveService {
     private final EmailService emailService;
     private final UserRepository userRepository;
     private final LeaveTypeConfigRepository leaveTypeConfigRepository;
-
-    public LeaveServiceImpl(
-            LeaveRepository leaveRepository,
-            EmployeeRepository employeeRepository,
-            FileStorageService fileStorageService,
-            EmailService emailService,
-            UserRepository userRepository,
-            LeaveTypeConfigRepository leaveTypeConfigRepository) {
-        this.leaveRepository = leaveRepository;
-        this.employeeRepository = employeeRepository;
-        this.fileStorageService = fileStorageService;
-        this.emailService = emailService;
-        this.userRepository = userRepository;
-        this.leaveTypeConfigRepository = leaveTypeConfigRepository;
-    }
+    private final EmailTemplateService emailTemplateService;
 
     @Override
     @Transactional
@@ -97,46 +87,8 @@ public class LeaveServiceImpl implements LeaveService {
 
         Leave savedLeave = leaveRepository.save(leave);
 
-        // Send email confirmation to employee
-        String empSubject = "Leave Request Submitted";
-        String empText = String.format(
-            "Dear %s,\n\nYour leave request from %s to %s for %d day(s) has been submitted and is pending approval.\n\nReason: %s\nHold Days: %.1f\nDuration: %s\n\nRegards,\nHR Department",
-            employee.getFirstName(),
-            savedLeave.getStartDate(),
-            savedLeave.getEndDate(),
-            savedLeave.getNumberOfDays(),
-            savedLeave.getReason(),
-            savedLeave.getHoldDays(),
-            savedLeave.getLeaveDuration()
-        );
-
-        if (employee.getEmail() != null) {
-            emailService.sendSimpleMessage(employee.getEmail(), empSubject, empText);
-        } else {
-            System.err.println("Warning: Employee with ID " + employee.getId() + " has no email address. Cannot send leave submission notification.");
-        }
-
-        // Send notification to Admins/HR Managers
-        String adminSubject = "New Leave Request Submitted by " + employee.getFirstName() + " " + employee.getLastName();
-        String adminText = String.format(
-            "A new leave request has been submitted by %s %s (ID: %d).\n\nDates: %s to %s (%d days)\nType: %s\nReason: %s\nHold Days: %.1f\nDuration: %s\n\nPlease review the request in the system.",
-            employee.getFirstName(), employee.getLastName(), employee.getId(),
-            savedLeave.getStartDate(), savedLeave.getEndDate(), savedLeave.getNumberOfDays(),
-            savedLeave.getLeaveType(), savedLeave.getReason(), savedLeave.getHoldDays(),
-            savedLeave.getLeaveDuration()
-        );
-
-        List<User> adminsAndHr = userRepository.findAll().stream()
-                .filter(user -> user.getRole() == Role.ADMIN || user.getRole() == Role.HR_MANAGER)
-                .toList();
-
-        for (User adminOrHr : adminsAndHr) {
-            if (adminOrHr.getEmail() != null) {
-                emailService.sendSimpleMessage(adminOrHr.getEmail(), adminSubject, adminText);
-            } else {
-                System.err.println("Warning: Admin/HR User " + adminOrHr.getUsername() + " has no email. Cannot send new leave notification.");
-            }
-        }
+        // Send email notifications
+        emailTemplateService.sendLeaveRequestNotification(savedLeave, employee);
 
         return convertToDto(savedLeave);
     }
@@ -242,6 +194,14 @@ public class LeaveServiceImpl implements LeaveService {
         } else if (sendEmail) {
              System.err.println("Warning: Employee with ID " + employee.getId() + " has no email address. Cannot send leave status update notification.");
         }
+
+        // Send email notifications
+        emailTemplateService.sendLeaveStatusUpdateNotification(
+            updatedLeave, 
+            updatedLeave.getEmployee(), 
+            updatedLeave.getStatus(), 
+            updatedLeave.getRejectionReason()
+        );
 
         return convertToDto(updatedLeave);
     }
