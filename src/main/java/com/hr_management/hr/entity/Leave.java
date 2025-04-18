@@ -16,6 +16,7 @@ import lombok.Data;
 
 import com.hr_management.hr.enums.LeaveStatus;
 import com.hr_management.hr.enums.LeaveType;
+import com.hr_management.hr.enums.LeaveDuration;
 
 @Entity
 @Data
@@ -37,6 +38,13 @@ public class Leave {
 
     @Column(nullable = false)
     private Integer numberOfDays;
+
+    @Column(nullable = false)
+    private Double holdDays = 0.0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private LeaveDuration leaveDuration = LeaveDuration.FULL_DAY;
 
     @Column(length = 500)
     private String reason;

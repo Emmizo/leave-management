@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import com.hr_management.hr.entity.User;
 import com.hr_management.hr.entity.Role;
 import com.hr_management.hr.enums.LeaveStatus;
 import com.hr_management.hr.enums.LeaveType;
+import com.hr_management.hr.enums.LeaveDuration;
 import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.LeaveRequestDto;
@@ -80,6 +82,8 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setLeaveType(leaveRequest.getType());
         leave.setStatus(LeaveStatus.PENDING);
         leave.setNumberOfDays(numberOfDays);
+        leave.setHoldDays(Optional.ofNullable(leaveRequest.getHoldDays()).orElse(0.0));
+        leave.setLeaveDuration(leaveRequest.getLeaveDuration() != null ? leaveRequest.getLeaveDuration() : LeaveDuration.FULL_DAY);
 
         // Store the document if provided
         if (supportingDocument != null && !supportingDocument.isEmpty()) {
@@ -96,12 +100,14 @@ public class LeaveServiceImpl implements LeaveService {
         // Send email confirmation to employee
         String empSubject = "Leave Request Submitted";
         String empText = String.format(
-            "Dear %s,\n\nYour leave request from %s to %s for %d day(s) has been submitted and is pending approval.\n\nReason: %s\n\nRegards,\nHR Department",
+            "Dear %s,\n\nYour leave request from %s to %s for %d day(s) has been submitted and is pending approval.\n\nReason: %s\nHold Days: %.1f\nDuration: %s\n\nRegards,\nHR Department",
             employee.getFirstName(),
             savedLeave.getStartDate(),
             savedLeave.getEndDate(),
             savedLeave.getNumberOfDays(),
-            savedLeave.getReason()
+            savedLeave.getReason(),
+            savedLeave.getHoldDays(),
+            savedLeave.getLeaveDuration()
         );
 
         if (employee.getEmail() != null) {
@@ -113,10 +119,11 @@ public class LeaveServiceImpl implements LeaveService {
         // Send notification to Admins/HR Managers
         String adminSubject = "New Leave Request Submitted by " + employee.getFirstName() + " " + employee.getLastName();
         String adminText = String.format(
-            "A new leave request has been submitted by %s %s (ID: %d).\n\nDates: %s to %s (%d days)\nType: %s\nReason: %s\n\nPlease review the request in the system.",
+            "A new leave request has been submitted by %s %s (ID: %d).\n\nDates: %s to %s (%d days)\nType: %s\nReason: %s\nHold Days: %.1f\nDuration: %s\n\nPlease review the request in the system.",
             employee.getFirstName(), employee.getLastName(), employee.getId(),
             savedLeave.getStartDate(), savedLeave.getEndDate(), savedLeave.getNumberOfDays(),
-            savedLeave.getLeaveType(), savedLeave.getReason()
+            savedLeave.getLeaveType(), savedLeave.getReason(), savedLeave.getHoldDays(),
+            savedLeave.getLeaveDuration()
         );
 
         List<User> adminsAndHr = userRepository.findAll().stream()

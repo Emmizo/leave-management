@@ -1,37 +1,51 @@
 package com.hr_management.hr.controller;
 
+import java.security.Principal;
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.hr_management.hr.entity.Employee;
 import com.hr_management.hr.entity.User;
+import com.hr_management.hr.exception.ResourceNotFoundException;
 import com.hr_management.hr.model.EmployeeDto;
+import com.hr_management.hr.model.LeaveBalanceDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.LeaveRequestDto;
 import com.hr_management.hr.model.LeaveStatusUpdateDto;
+import com.hr_management.hr.repository.EmployeeRepository;
+import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmployeeService;
 import com.hr_management.hr.service.LeaveService;
+import com.hr_management.hr.exception.LeaveAPIException;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Collection;
-import java.util.List;
-import java.security.Principal;
-
-import com.hr_management.hr.entity.Employee;
-import com.hr_management.hr.exception.ResourceNotFoundException;
-import com.hr_management.hr.model.LeaveBalanceDto;
-import com.hr_management.hr.repository.EmployeeRepository;
-import com.hr_management.hr.repository.UserRepository;
 
 @RestController
 @RequestMapping("/api/leaves")
@@ -73,8 +87,12 @@ public class LeaveController {
             return ResponseEntity.ok(leaveService.getAllLeaveRequestsSorted());
         } else {
             Object principal = authentication.getPrincipal();
-            if (principal instanceof User) {
-                User currentUser = (User) principal;
+            if (principal == null) {
+                System.err.println("Principal is null after authentication");
+                return ResponseEntity.status(403).build();
+            }
+            
+            if (principal instanceof User currentUser) {
                 Long employeeId = getEmployeeIdFromUser(currentUser);
                 return ResponseEntity.ok(leaveService.getEmployeeLeaves(employeeId));
             } else {
@@ -84,25 +102,77 @@ public class LeaveController {
         }
     }
 
-    @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+    @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     @Operation(summary = "Create a new leave request", 
-               description = "Creates a new leave request for the authenticated employee. Optionally include a supporting document.",
+               description = """
+               Creates a new leave request. Supports two formats:
+               
+               1. JSON Request (Content-Type: application/json):
+                  Required fields: startDate, endDate, reason, type
+                  Optional fields: holdDays (default: 0.0), leaveDuration (FULL_DAY/HALF_DAY)
+                  Note: Use this format for leave types that don't require documentation
+               
+               2. Multipart Request (Content-Type: multipart/form-data):
+                  - leaveRequest: JSON object with the above fields
+                  - document: Optional file upload (required for certain leave types like SICK or MATERNITY)
+               """,
                security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Leave request created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid input or file error"),
+        @ApiResponse(responseCode = "400", description = "Invalid input"),
         @ApiResponse(responseCode = "401", description = "User not authenticated"),
-        @ApiResponse(responseCode = "404", description = "Employee record not found for the user")
+        @ApiResponse(responseCode = "404", description = "Employee record not found"),
+        @ApiResponse(responseCode = "415", description = "Unsupported media type")
     })
-    public ResponseEntity<LeaveDto> createLeaveRequest(
+    public ResponseEntity<?> createLeaveRequest(
             @Parameter(hidden = true) @AuthenticationPrincipal User currentUser,
-            @Parameter(description = "Leave request details (JSON)") 
-            @Valid @RequestPart("leaveRequest") LeaveRequestDto leaveRequest,
-            @Parameter(description = "Optional supporting document")
-            @RequestPart(value = "document", required = false) MultipartFile document) {
-        
-        Long employeeId = getEmployeeIdFromUser(currentUser);
-        return ResponseEntity.ok(leaveService.createLeaveRequest(employeeId, leaveRequest, document));
+            @RequestPart(value = "leaveRequest", required = false) String leaveRequestJson,
+            @RequestPart(value = "document", required = false) MultipartFile document,
+            @RequestBody(required = false) String rawBody) {
+        try {
+            LeaveRequestDto leaveRequest;
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+
+            // Handle JSON request
+            if (rawBody != null) {
+                try {
+                    leaveRequest = objectMapper.readValue(rawBody, LeaveRequestDto.class);
+                } catch (JsonProcessingException e) {
+                    return ResponseEntity.badRequest()
+                        .body(new ErrorResponse("Invalid JSON format: " + e.getMessage()));
+                }
+            }
+            // Handle multipart request
+            else if (leaveRequestJson != null) {
+                try {
+                    leaveRequest = objectMapper.readValue(leaveRequestJson, LeaveRequestDto.class);
+                } catch (JsonProcessingException e) {
+                    return ResponseEntity.badRequest()
+                        .body(new ErrorResponse("Invalid JSON in leaveRequest part: " + e.getMessage()));
+                }
+            }
+            else {
+                return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("No leave request data provided"));
+            }
+
+            // Validate required fields
+            if (leaveRequest.getStartDate() == null || leaveRequest.getEndDate() == null ||
+                leaveRequest.getReason() == null || leaveRequest.getType() == null) {
+                return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Required fields missing: startDate, endDate, reason, and type are required"));
+            }
+
+            Long employeeId = getEmployeeIdFromUser(currentUser);
+            LeaveDto result = leaveService.createLeaveRequest(employeeId, leaveRequest, document);
+            return ResponseEntity.ok(result);
+        } catch (LeaveAPIException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(new ErrorResponse(e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PutMapping("/{leaveId}/status")
@@ -207,5 +277,11 @@ public class LeaveController {
              throw new IllegalStateException("Found employee record has a null ID for user: " + user.getUsername());
         }
         return employee.getId();
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class ErrorResponse {
+        private String message;
     }
 } 

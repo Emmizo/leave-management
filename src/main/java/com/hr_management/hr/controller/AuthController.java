@@ -9,9 +9,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import com.hr_management.hr.entity.User;
+import com.hr_management.hr.entity.Employee;
+import com.hr_management.hr.entity.Role;
 import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.AuthResponse;
 import com.hr_management.hr.model.LoginRequestDto;
@@ -21,7 +33,8 @@ import com.hr_management.hr.security.JwtService;
 import com.hr_management.hr.service.EmployeeService;
 import com.hr_management.hr.service.UserService;
 import com.hr_management.hr.service.EmailService;
-
+import com.hr_management.hr.repository.UserRepository;
+import com.hr_management.hr.repository.EmployeeRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,13 +44,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.http.HttpMethod;
 
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Authentication management APIs")
-@SecurityRequirement(name = "bearerAuth") // Global security requirement
+@Slf4j
 public class AuthController {
 
     private final UserService userService;
@@ -45,24 +65,36 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final EmailService emailService;
+    private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final OAuth2AuthorizedClientService clientService;
 
     public AuthController(
             UserService userService,
             EmployeeService employeeService,
             AuthenticationManager authenticationManager,
             JwtService jwtService,
-            EmailService emailService) {
+            EmailService emailService,
+            UserRepository userRepository,
+            EmployeeRepository employeeRepository,
+            PasswordEncoder passwordEncoder,
+            OAuth2AuthorizedClientService clientService) {
         this.userService = userService;
         this.employeeService = employeeService;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.emailService = emailService;
+        this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.clientService = clientService;
     }
 
     @PostMapping("/login")
     @Operation(summary = "Login user", 
                description = "Authenticates user and returns JWT token with user details. This endpoint is publicly accessible and does not require authentication.",
-               security = {}) // Override global security requirement
+               security = {}) // Empty security array means no security required
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Login successful"),
         @ApiResponse(responseCode = "401", description = "Invalid credentials")
@@ -78,9 +110,12 @@ public class AuthController {
         );
         
         Object principal = authentication.getPrincipal();
-        User user;
-        if (principal instanceof User) {
-             user = (User) principal;
+        if (principal == null) {
+            throw new UsernameNotFoundException("Principal is null after authentication");
+        }
+        
+        if (principal instanceof User user) {
+             // user variable is already cast and available here
         } else {
              throw new UsernameNotFoundException("Unexpected principal type after authentication: " + principal.getClass());
         }
@@ -176,5 +211,157 @@ public class AuthController {
         EmployeeDto employee = employeeService.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
         return ResponseEntity.ok(employee);
+    }
+
+    @PostMapping("/microsoft/login")
+    @Operation(
+        summary = "Microsoft OAuth2 Login",
+        description = "Initiates Microsoft OAuth2 login flow and returns authorization URL for authentication",
+        tags = {"Authentication"},
+        security = @SecurityRequirement(name = ""),
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "Authorization URL generated successfully",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(
+                        description = "Authorization response containing URL and state",
+                        example = "{\"authUrl\": \"https://login.microsoftonline.com/...\", \"state\": \"random-uuid\"}"
+                    )
+                )
+            ),
+            @ApiResponse(responseCode = "500", description = "Internal server error during OAuth2 flow initiation")
+        }
+    )
+    public ResponseEntity<Map<String, String>> microsoftLogin(HttpServletRequest request) {
+        // Generate a state parameter for security
+        String state = UUID.randomUUID().toString();
+        
+        // Store the state in the session for validation later
+        HttpSession session = request.getSession();
+        session.setAttribute("oauth2_state", state);
+        
+        // Use the configured OAuth2 properties
+        String clientId = "3193b05b-c8ec-4bad-8e5a-0845d604883d";
+        String redirectUri = "http://localhost:5456/api/auth/microsoft/callback";
+        String scope = "openid profile email User.Read";
+        
+        String authorizationUrl = String.format(
+            "https://login.microsoftonline.com/202c75b4-8389-4dce-b7a9-9d2c4f7b1bad/oauth2/v2.0/authorize?" +
+            "client_id=%s&" +
+            "redirect_uri=%s&" +
+            "response_type=code&" +
+            "scope=%s&" +
+            "state=%s",
+            clientId,
+            URLEncoder.encode(redirectUri, StandardCharsets.UTF_8),
+            URLEncoder.encode(scope, StandardCharsets.UTF_8),
+            state
+        );
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("authorizationUrl", authorizationUrl);
+        response.put("state", state);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/microsoft/callback")
+    @Operation(
+        summary = "Microsoft OAuth2 Callback",
+        description = "Handles the callback from Microsoft OAuth2 authentication and returns JWT token with user details",
+        tags = {"Authentication"},
+        security = @SecurityRequirement(name = ""),
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "Authentication successful",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = AuthResponse.class)
+                )
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "401", description = "Authentication failed"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+        }
+    )
+    public ResponseEntity<?> microsoftCallback(
+            @Parameter(description = "OAuth2 callback payload containing code and state")
+            @RequestBody Map<String, String> payload) {
+        
+        try {
+            // Exchange the authorization code for tokens using OAuth2 client
+            OAuth2AuthorizedClient client = clientService.loadAuthorizedClient("azure", "microsoft");
+            if (client == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Failed to authenticate with Microsoft"));
+            }
+
+            String accessToken = client.getAccessToken().getTokenValue();
+
+            // Get user info from Microsoft Graph API
+            String userInfoEndpoint = "https://graph.microsoft.com/v1.0/me";
+            HttpHeaders userInfoHeaders = new HttpHeaders();
+            userInfoHeaders.setBearerAuth(accessToken);
+            HttpEntity<?> userInfoRequest = new HttpEntity<>(userInfoHeaders);
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> userInfoResponse = restTemplate.exchange(
+                userInfoEndpoint,
+                HttpMethod.GET,
+                userInfoRequest,
+                Map.class
+            );
+
+            Map<String, Object> userInfo = userInfoResponse.getBody();
+            String email = (String) userInfo.get("mail");
+            String name = (String) userInfo.get("displayName");
+
+            // Check if user exists
+            Optional<User> existingUser = userRepository.findByEmail(email);
+            User user;
+
+            if (existingUser.isPresent()) {
+                user = existingUser.get();
+            } else {
+                // Create new user
+                user = new User();
+                user.setEmail(email);
+                user.setUsername(email);
+                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                user.setRole(Role.EMPLOYEE);
+                user = userRepository.save(user);
+
+                // Create employee record
+                Employee employee = new Employee();
+                employee.setUser(user);
+                employee.setEmail(email);
+                String[] nameParts = name.split(" ", 2);
+                employee.setFirstName(nameParts[0]);
+                employee.setLastName(nameParts.length > 1 ? nameParts[1] : "");
+                employee.setDepartment("Unassigned");
+                employee.setPosition("New Employee");
+                employeeRepository.save(employee);
+            }
+
+            // Generate JWT token
+            String jwtToken = jwtService.generateToken(user);
+            
+            // Get employee details
+            EmployeeDto employeeDto = employeeService.findByUser(user)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+            return ResponseEntity.ok(AuthResponse.builder()
+                    .token(jwtToken)
+                    .user(employeeDto)
+                    .build());
+
+        } catch (Exception e) {
+            log.error("Error during Microsoft OAuth callback", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to process Microsoft OAuth callback"));
+        }
     }
 }

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(value = HttpStatus.BAD_REQUEST)
 public class LeaveAPIException extends RuntimeException {
     
-    private HttpStatus status;
+    private final HttpStatus status;
     
     public LeaveAPIException(String message) {
         super(message);

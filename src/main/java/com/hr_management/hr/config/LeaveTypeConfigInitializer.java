@@ -3,15 +3,19 @@ package com.hr_management.hr.config;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import jakarta.annotation.PostConstruct;
 
 import com.hr_management.hr.entity.LeaveTypeConfig;
 import com.hr_management.hr.enums.LeaveType;
 import com.hr_management.hr.repository.LeaveTypeConfigRepository;
 
 @Configuration
+@DependsOn("leaveTypeConfigRepository")
 public class LeaveTypeConfigInitializer {
 
     @Bean
+    @PostConstruct
     CommandLineRunner initLeaveTypeConfig(LeaveTypeConfigRepository leaveTypeConfigRepository) {
         return args -> {
             // Initialize PTO (Personal Time Off)

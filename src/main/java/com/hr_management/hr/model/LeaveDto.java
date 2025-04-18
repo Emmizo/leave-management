@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 
 import com.hr_management.hr.enums.LeaveStatus;
 import com.hr_management.hr.enums.LeaveType;
+import com.hr_management.hr.enums.LeaveDuration;
 
 @Data
 @Builder
@@ -22,4 +23,6 @@ public class LeaveDto {
     private LeaveType type;
     private EmployeeDto employee;
     private String supportingDocumentPath;
+    private Double holdDays;
+    private LeaveDuration leaveDuration;
 } 

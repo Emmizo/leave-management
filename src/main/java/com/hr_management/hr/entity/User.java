@@ -56,6 +56,9 @@ public class User implements UserDetails {
     @Column(columnDefinition = "BOOLEAN DEFAULT true")
     private boolean enabled = true;
 
+    @Column
+    private String profilePicture;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Employee employee;
 
