@@ -6,8 +6,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,34 +16,31 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.hr_management.hr.entity.Employee;
 import com.hr_management.hr.entity.Leave;
-import com.hr_management.hr.entity.User;
-import com.hr_management.hr.entity.Role;
+import com.hr_management.hr.entity.LeaveTypeConfig;
+import com.hr_management.hr.enums.LeaveDuration;
 import com.hr_management.hr.enums.LeaveStatus;
 import com.hr_management.hr.enums.LeaveType;
-import com.hr_management.hr.enums.LeaveDuration;
+import com.hr_management.hr.exception.LeaveAPIException;
 import com.hr_management.hr.model.EmployeeDto;
+import com.hr_management.hr.model.LeaveBalanceDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.LeaveRequestDto;
-import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.model.LeaveStatusUpdateDto;
+import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.LeaveRepository;
+import com.hr_management.hr.repository.LeaveTypeConfigRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmailService;
+import com.hr_management.hr.service.EmailTemplateService;
 import com.hr_management.hr.service.FileStorageService;
 import com.hr_management.hr.service.LeaveService;
-import com.hr_management.hr.exception.LeaveAPIException;
-import com.hr_management.hr.repository.LeaveTypeConfigRepository;
-import com.hr_management.hr.entity.LeaveTypeConfig;
-import com.hr_management.hr.model.LeaveBalanceDto;
-import com.hr_management.hr.service.EmailTemplateService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
-@RequiredArgsConstructor
 public class LeaveServiceImpl implements LeaveService {
 
+    private static final Logger logger = LoggerFactory.getLogger(LeaveServiceImpl.class);
+    
     private final LeaveRepository leaveRepository;
     private final EmployeeRepository employeeRepository;
     private final FileStorageService fileStorageService;
@@ -51,29 +49,77 @@ public class LeaveServiceImpl implements LeaveService {
     private final LeaveTypeConfigRepository leaveTypeConfigRepository;
     private final EmailTemplateService emailTemplateService;
 
+    public LeaveServiceImpl(LeaveRepository leaveRepository, 
+                           EmployeeRepository employeeRepository, 
+                           FileStorageService fileStorageService, 
+                           EmailService emailService, 
+                           UserRepository userRepository, 
+                           LeaveTypeConfigRepository leaveTypeConfigRepository, 
+                           EmailTemplateService emailTemplateService) {
+        this.leaveRepository = leaveRepository;
+        this.employeeRepository = employeeRepository;
+        this.fileStorageService = fileStorageService;
+        this.emailService = emailService;
+        this.userRepository = userRepository;
+        this.leaveTypeConfigRepository = leaveTypeConfigRepository;
+        this.emailTemplateService = emailTemplateService;
+    }
+
     @Override
     @Transactional
     public LeaveDto createLeaveRequest(Long employeeId, LeaveRequestDto leaveRequest, MultipartFile supportingDocument) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 
-        // Calculate numberOfDays
-        long daysBetween = ChronoUnit.DAYS.between(leaveRequest.getStartDate(), leaveRequest.getEndDate());
-        int numberOfDays = (int) daysBetween + 1; // Add 1 for inclusive days
+        // Use provided numberOfDays or calculate it
+        int numberOfDays;
+        if (leaveRequest.getNumberOfDays() != null) {
+            numberOfDays = leaveRequest.getNumberOfDays();
+        } else {
+            // Calculate numberOfDays
+            long daysBetween = ChronoUnit.DAYS.between(leaveRequest.getStartDate(), leaveRequest.getEndDate());
+            numberOfDays = (int) daysBetween + 1; // Add 1 for inclusive days
+        }
+
+        // Convert String type to LeaveType enum
+        LeaveType leaveType;
+        try {
+            leaveType = LeaveType.valueOf(leaveRequest.getType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new LeaveAPIException(HttpStatus.BAD_REQUEST, 
+                "Invalid leave type: " + leaveRequest.getType() + ". Valid types are: " + 
+                String.join(", ", java.util.Arrays.stream(LeaveType.values())
+                    .map(Enum::name)
+                    .collect(java.util.stream.Collectors.toList())));
+        }
 
         // Validate leave request based on type and balance
-        validateLeaveRequest(employee, leaveRequest.getType(), numberOfDays, supportingDocument);
+        validateLeaveRequest(employee, leaveType, numberOfDays, supportingDocument);
 
         Leave leave = new Leave();
         leave.setEmployee(employee);
         leave.setStartDate(leaveRequest.getStartDate());
         leave.setEndDate(leaveRequest.getEndDate());
         leave.setReason(leaveRequest.getReason());
-        leave.setLeaveType(leaveRequest.getType());
+        leave.setLeaveType(leaveType);
         leave.setStatus(LeaveStatus.PENDING);
         leave.setNumberOfDays(numberOfDays);
-        leave.setHoldDays(Optional.ofNullable(leaveRequest.getHoldDays()).orElse(0.0));
-        leave.setLeaveDuration(leaveRequest.getLeaveDuration() != null ? leaveRequest.getLeaveDuration() : LeaveDuration.FULL_DAY);
+        
+        // Convert Integer holdDays to Double
+        Integer holdDaysInt = leaveRequest.getHoldDays();
+        leave.setHoldDays(holdDaysInt != null ? holdDaysInt.doubleValue() : 0.0);
+        
+        // Convert String leaveDuration to LeaveDuration enum
+        String durationStr = leaveRequest.getLeaveDuration();
+        LeaveDuration duration = LeaveDuration.FULL_DAY; // Default value
+        if (durationStr != null && !durationStr.isEmpty()) {
+            try {
+                duration = LeaveDuration.valueOf(durationStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid leave duration value: {}. Using default FULL_DAY", durationStr);
+            }
+        }
+        leave.setLeaveDuration(duration);
 
         // Store the document if provided
         if (supportingDocument != null && !supportingDocument.isEmpty()) {

@@ -1,65 +1,77 @@
 package com.hr_management.hr.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
-import jakarta.annotation.PostConstruct;
+import org.springframework.stereotype.Component;
 
 import com.hr_management.hr.entity.LeaveTypeConfig;
 import com.hr_management.hr.enums.LeaveType;
 import com.hr_management.hr.repository.LeaveTypeConfigRepository;
 
-@Configuration
-@DependsOn("leaveTypeConfigRepository")
-public class LeaveTypeConfigInitializer {
+@Component
+public class LeaveTypeConfigInitializer implements CommandLineRunner {
 
-    @Bean
-    @PostConstruct
-    CommandLineRunner initLeaveTypeConfig(LeaveTypeConfigRepository leaveTypeConfigRepository) {
-        return args -> {
-            // Initialize PTO (Personal Time Off)
-            createIfNotExists(leaveTypeConfigRepository, LeaveType.PTO, 20,
-                "Standard annual leave for personal time off.",
-                false);
+    private static final Logger log = LoggerFactory.getLogger(LeaveTypeConfigInitializer.class);
+    private final LeaveTypeConfigRepository leaveTypeConfigRepository;
 
-            // Initialize Sick Leave
-            createIfNotExists(leaveTypeConfigRepository, LeaveType.SICK, 10,
-                "Leave for medical reasons. Requires medical proof.",
-                true);
-
-            // Initialize Maternity Leave
-            createIfNotExists(leaveTypeConfigRepository, LeaveType.MATERNITY, 90,
-                "Extended leave for expecting mothers. Requires medical documentation.",
-                true);
-
-            // Initialize Paternity Leave
-            createIfNotExists(leaveTypeConfigRepository, LeaveType.PATERNITY, 14,
-                "Leave for new fathers. May require birth certificate.",
-                true);
-
-            // Initialize Bereavement Leave
-            createIfNotExists(leaveTypeConfigRepository, LeaveType.BEREAVEMENT, 5,
-                "Leave for family bereavement. May require death certificate.",
-                true);
-
-            // Initialize Unpaid Leave
-            createIfNotExists(leaveTypeConfigRepository, LeaveType.UNPAID, 30,
-                "Unpaid leave for special circumstances. Requires manager approval.",
-                false);
-        };
+    public LeaveTypeConfigInitializer(LeaveTypeConfigRepository leaveTypeConfigRepository) {
+        this.leaveTypeConfigRepository = leaveTypeConfigRepository;
     }
 
-    private void createIfNotExists(LeaveTypeConfigRepository repository, LeaveType type, 
-            int annualLimit, String description, boolean requiresDocument) {
-        if (!repository.findByLeaveType(type).isPresent()) {
-            LeaveTypeConfig config = new LeaveTypeConfig();
-            config.setLeaveType(type);
-            config.setAnnualLimit(annualLimit);
-            config.setDescription(description);
-            config.setRequiresDocument(requiresDocument);
-            config.setIsActive(true);
-            repository.save(config);
+    @Override
+    public void run(String... args) {
+        initLeaveTypeConfig();
+    }
+
+    private void initLeaveTypeConfig() {
+        // Check if configurations already exist
+        if (leaveTypeConfigRepository.count() > 0) {
+            log.info("Leave type configurations already initialized");
+            return;
         }
+
+        log.info("Initializing leave type configurations");
+
+        // Create configurations for each leave type
+        for (LeaveType leaveType : LeaveType.values()) {
+            LeaveTypeConfig config = new LeaveTypeConfig();
+            config.setLeaveType(leaveType);
+            config.setIsActive(true);
+            
+            // Set default values based on leave type
+            switch (leaveType) {
+                case PTO -> {
+                    config.setAnnualLimit(20);
+                    config.setRequiresDocument(false);
+                    config.setDescription("Paid Time Off - Standard annual leave");
+                }
+                case SICK -> {
+                    config.setAnnualLimit(10);
+                    config.setRequiresDocument(true);
+                    config.setDescription("Sick Leave - Requires medical certificate");
+                }
+                case BEREAVEMENT -> {
+                    config.setAnnualLimit(5);
+                    config.setRequiresDocument(true);
+                    config.setDescription("Bereavement Leave - Requires death certificate");
+                }
+                case MATERNITY -> {
+                    config.setAnnualLimit(90);
+                    config.setRequiresDocument(true);
+                    config.setDescription("Maternity Leave - Requires medical certificate");
+                }
+                default -> {
+                    config.setAnnualLimit(0);
+                    config.setRequiresDocument(false);
+                    config.setDescription("Default configuration");
+                }
+            }
+            
+            leaveTypeConfigRepository.save(config);
+            log.info("Created configuration for leave type: {}", leaveType);
+        }
+        
+        log.info("Leave type configurations initialized successfully");
     }
 } 

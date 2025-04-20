@@ -3,31 +3,34 @@ package com.hr_management.hr.service.impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hr_management.hr.entity.LeaveTypeConfig;
 import com.hr_management.hr.enums.LeaveType;
 import com.hr_management.hr.exception.LeaveAPIException;
+import com.hr_management.hr.exception.ResourceNotFoundException;
 import com.hr_management.hr.model.LeaveTypeConfigDto;
 import com.hr_management.hr.repository.LeaveTypeConfigRepository;
 import com.hr_management.hr.service.LeaveTypeConfigService;
-import com.hr_management.hr.exception.ResourceNotFoundException;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class LeaveTypeConfigServiceImpl implements LeaveTypeConfigService {
 
+    private static final Logger logger = LoggerFactory.getLogger(LeaveTypeConfigServiceImpl.class);
+    
     private final LeaveTypeConfigRepository leaveTypeConfigRepository;
+
+    public LeaveTypeConfigServiceImpl(LeaveTypeConfigRepository leaveTypeConfigRepository) {
+        this.leaveTypeConfigRepository = leaveTypeConfigRepository;
+    }
 
     @Override
     @Transactional(readOnly = true)
     public List<LeaveTypeConfigDto> getAllLeaveTypeConfigs() {
-        log.info("Fetching all leave type configurations");
+        logger.info("Fetching all leave type configurations");
         return leaveTypeConfigRepository.findAll().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -36,7 +39,7 @@ public class LeaveTypeConfigServiceImpl implements LeaveTypeConfigService {
     @Override
     @Transactional(readOnly = true)
     public LeaveTypeConfigDto getLeaveTypeConfig(LeaveType leaveType) {
-        log.info("Fetching leave type configuration for: {}", leaveType);
+        logger.info("Fetching leave type configuration for: {}", leaveType);
         return leaveTypeConfigRepository.findByLeaveType(leaveType)
                 .map(this::convertToDto)
                 .orElseThrow(() -> new LeaveAPIException("Leave type configuration not found for: " + leaveType));
@@ -45,7 +48,7 @@ public class LeaveTypeConfigServiceImpl implements LeaveTypeConfigService {
     @Override
     @Transactional
     public LeaveTypeConfigDto createLeaveTypeConfig(LeaveTypeConfigDto configDto) {
-        log.info("Creating new leave type configuration: {}", configDto);
+        logger.info("Creating new leave type configuration: {}", configDto);
         if (leaveTypeConfigRepository.findByLeaveType(configDto.getLeaveType()).isPresent()) {
             throw new LeaveAPIException("Leave type configuration already exists for: " + configDto.getLeaveType());
         }
@@ -76,7 +79,7 @@ public class LeaveTypeConfigServiceImpl implements LeaveTypeConfigService {
     @Override
     @Transactional
     public void toggleLeaveTypeStatus(LeaveType leaveType, boolean isActive) {
-        log.info("Toggling leave type status for: {} to: {}", leaveType, isActive);
+        logger.info("Toggling leave type status for: {} to: {}", leaveType, isActive);
         LeaveTypeConfig config = leaveTypeConfigRepository.findByLeaveType(leaveType)
                 .orElseThrow(() -> new ResourceNotFoundException("LeaveTypeConfig", "leaveType", 0L));
         config.setIsActive(isActive);

@@ -1,20 +1,12 @@
 package com.hr_management.hr.security;
 
-import com.hr_management.hr.entity.User;
-import com.hr_management.hr.entity.Role;
-import com.hr_management.hr.entity.Employee;
-import com.hr_management.hr.repository.UserRepository;
-import com.hr_management.hr.repository.EmployeeRepository;
-import com.hr_management.hr.model.AuthResponse;
-import com.hr_management.hr.model.EmployeeDto;
-import com.hr_management.hr.model.UserDto;
-import com.hr_management.hr.service.EmployeeService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
@@ -24,15 +16,25 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hr_management.hr.entity.Employee;
+import com.hr_management.hr.entity.Role;
+import com.hr_management.hr.entity.User;
+import com.hr_management.hr.model.AuthResponse;
+import com.hr_management.hr.model.EmployeeDto;
+import com.hr_management.hr.model.UserDto;
+import com.hr_management.hr.repository.EmployeeRepository;
+import com.hr_management.hr.repository.UserRepository;
+import com.hr_management.hr.service.EmployeeService;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(OAuth2AuthenticationSuccessHandler.class);
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -43,6 +45,15 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     @Value("${app.oauth2.redirectUri}")
     private String redirectUri;
+
+    public OAuth2AuthenticationSuccessHandler(JwtService jwtService, UserRepository userRepository, EmployeeRepository employeeRepository, EmployeeService employeeService, PasswordEncoder passwordEncoder, ObjectMapper objectMapper) {
+        this.jwtService = jwtService;
+        this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
+        this.employeeService = employeeService;
+        this.passwordEncoder = passwordEncoder;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)

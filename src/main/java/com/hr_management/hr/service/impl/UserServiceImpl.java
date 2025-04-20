@@ -1,19 +1,23 @@
 package com.hr_management.hr.service.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.hr_management.hr.entity.User;
 import com.hr_management.hr.entity.Role;
+import com.hr_management.hr.entity.User;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.UserService;
 
 @Service
 public class UserServiceImpl implements UserService, UserDetailsService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+    
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 

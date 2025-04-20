@@ -4,6 +4,7 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.List;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.hr_management.hr.entity.Employee;
 import com.hr_management.hr.entity.User;
+import com.hr_management.hr.exception.LeaveAPIException;
 import com.hr_management.hr.exception.ResourceNotFoundException;
 import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.LeaveBalanceDto;
@@ -35,7 +37,6 @@ import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmployeeService;
 import com.hr_management.hr.service.LeaveService;
-import com.hr_management.hr.exception.LeaveAPIException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,9 +44,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/leaves")
@@ -279,9 +277,39 @@ public class LeaveController {
         return employee.getId();
     }
 
-    @Data
-    @AllArgsConstructor
     private static class ErrorResponse {
         private String message;
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ErrorResponse that = (ErrorResponse) o;
+            return message.equals(that.message);
+        }
+
+        @Override
+        public int hashCode() {
+            return message.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "ErrorResponse{" +
+                    "message='" + message + '\'' +
+                    '}';
+        }
     }
 } 

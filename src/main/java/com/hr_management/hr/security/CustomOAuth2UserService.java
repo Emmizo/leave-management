@@ -1,12 +1,10 @@
 package com.hr_management.hr.security;
 
-import com.hr_management.hr.entity.Employee;
-import com.hr_management.hr.entity.Role;
-import com.hr_management.hr.entity.User;
-import com.hr_management.hr.repository.EmployeeRepository;
-import com.hr_management.hr.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -15,17 +13,26 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
-import java.util.Optional;
+import com.hr_management.hr.entity.Employee;
+import com.hr_management.hr.entity.Role;
+import com.hr_management.hr.entity.User;
+import com.hr_management.hr.repository.EmployeeRepository;
+import com.hr_management.hr.repository.UserRepository;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomOAuth2UserService.class);
 
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
-    private final PasswordEncoder passwordEncoder; // Used for consistency if creating users
+    private final PasswordEncoder passwordEncoder;
+
+    public CustomOAuth2UserService(UserRepository userRepository, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     @Transactional

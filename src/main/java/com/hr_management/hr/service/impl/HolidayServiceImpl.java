@@ -15,15 +15,16 @@ import com.hr_management.hr.model.HolidayDto;
 import com.hr_management.hr.repository.HolidayRepository;
 import com.hr_management.hr.service.HolidayService;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class HolidayServiceImpl implements HolidayService {
 
     private static final Logger logger = LoggerFactory.getLogger(HolidayServiceImpl.class);
     
     private final HolidayRepository holidayRepository;
+
+    public HolidayServiceImpl(HolidayRepository holidayRepository) {
+        this.holidayRepository = holidayRepository;
+    }
 
     @Override
     @Transactional

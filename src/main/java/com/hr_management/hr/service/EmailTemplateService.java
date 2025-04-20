@@ -1,22 +1,26 @@
 package com.hr_management.hr.service;
 
-import com.hr_management.hr.entity.Employee;
-import com.hr_management.hr.entity.Leave;
-import com.hr_management.hr.entity.User;
-import com.hr_management.hr.entity.Role;
-import com.hr_management.hr.enums.LeaveStatus;
-import com.hr_management.hr.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+import com.hr_management.hr.entity.Employee;
+import com.hr_management.hr.entity.Leave;
+import com.hr_management.hr.entity.Role;
+import com.hr_management.hr.entity.User;
+import com.hr_management.hr.enums.LeaveStatus;
+import com.hr_management.hr.repository.UserRepository;
+
 @Service
-@RequiredArgsConstructor
 public class EmailTemplateService {
 
     private final EmailService emailService;
     private final UserRepository userRepository;
+
+    public EmailTemplateService(EmailService emailService, UserRepository userRepository) {
+        this.emailService = emailService;
+        this.userRepository = userRepository;
+    }
 
     public void sendWelcomeEmail(User user, Employee employee) {
         String subject = "Welcome to the HR Management System!";
