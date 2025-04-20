@@ -29,13 +29,16 @@ public class RegisterRequestDto {
     @NotBlank(message = "Position cannot be blank")
     private String position;
 
+    @NotBlank(message = "Role cannot be blank")
+    private String role;
+
     // Default constructor
     public RegisterRequestDto() {
     }
 
     // All-args constructor
     public RegisterRequestDto(String username, String password, String email, 
-                             String firstName, String lastName, String department, String position) {
+                             String firstName, String lastName, String department, String position, String role) {
         this.username = username;
         this.password = password;
         this.email = email;
@@ -43,6 +46,7 @@ public class RegisterRequestDto {
         this.lastName = lastName;
         this.department = department;
         this.position = position;
+        this.role = role;
     }
 
     // Getters and Setters
@@ -102,6 +106,14 @@ public class RegisterRequestDto {
         this.position = position;
     }
 
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -113,7 +125,8 @@ public class RegisterRequestDto {
                 (firstName != null ? firstName.equals(that.firstName) : that.firstName == null) &&
                 (lastName != null ? lastName.equals(that.lastName) : that.lastName == null) &&
                 (department != null ? department.equals(that.department) : that.department == null) &&
-                (position != null ? position.equals(that.position) : that.position == null);
+                (position != null ? position.equals(that.position) : that.position == null) &&
+                (role != null ? role.equals(that.role) : that.role == null);
     }
 
     @Override
@@ -125,6 +138,7 @@ public class RegisterRequestDto {
         result = 31 * result + (lastName != null ? lastName.hashCode() : 0);
         result = 31 * result + (department != null ? department.hashCode() : 0);
         result = 31 * result + (position != null ? position.hashCode() : 0);
+        result = 31 * result + (role != null ? role.hashCode() : 0);
         return result;
     }
 
@@ -137,6 +151,7 @@ public class RegisterRequestDto {
                 ", lastName='" + lastName + '\'' +
                 ", department='" + department + '\'' +
                 ", position='" + position + '\'' +
+                ", role='" + role + '\'' +
                 '}';
     }
 } 
