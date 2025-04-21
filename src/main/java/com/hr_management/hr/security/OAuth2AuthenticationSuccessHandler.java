@@ -1,8 +1,6 @@
 package com.hr_management.hr.security;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -26,6 +24,7 @@ import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmployeeService;
+import com.hr_management.hr.service.JwtService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,7 +38,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
-    private final EmployeeService employeeService;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
@@ -50,7 +48,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
-        this.employeeService = employeeService;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
     }
@@ -97,7 +94,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         Optional<User> userOptional = userRepository.findByEmail(email);
         User user;
         Employee employee;
-        boolean isNewUser = false;
         
         if (userOptional.isPresent()) {
             user = userOptional.get();
@@ -125,7 +121,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             }
         } else {
             // Create new user
-            isNewUser = true;
             user = new User();
             user.setEmail(email);
             user.setUsername(email); // Use email as username
@@ -142,16 +137,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             employee = createEmployee(user, givenName, familyName, fullName, microsoftId);
         }
         
-        // Generate JWT token with extra claims
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("email", user.getEmail());
-        extraClaims.put("role", user.getRole().name());
-        extraClaims.put("firstName", employee.getFirstName());
-        extraClaims.put("lastName", employee.getLastName());
-        extraClaims.put("picture", user.getProfilePicture());
-        
         // Generate token using the user's username (email) as the subject
-        String token = jwtService.generateToken(extraClaims, user);
+        String token = jwtService.generateToken(user);
         log.debug("Generated JWT token for user '{}'.", email);
         
         // Create EmployeeDto for response

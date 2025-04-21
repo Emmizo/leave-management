@@ -1,15 +1,21 @@
 package com.hr_management.hr.security;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.hr_management.hr.service.JwtService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,64 +33,68 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
-    @Override
-    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        String path = request.getServletPath();
-        return path.equals("/api/auth/login") || // Skip login endpoint
-               path.startsWith("/v3/api-docs") || // Skip Swagger endpoints
-               path.startsWith("/swagger-ui/") || // Skip Swagger UI
-               path.equals("/swagger-ui.html") || // Skip Swagger UI HTML
-               path.startsWith("/webjars/") || // Skip webjars
-               path.equals("/api/auth/microsoft") || // Skip Microsoft OAuth2 initial endpoint
-               path.equals("/api/auth/microsoft/login") || // Skip Microsoft OAuth2 login endpoint
-               path.equals("/api/auth/microsoft/callback"); // Skip Microsoft OAuth2 callback endpoint
-    }
+    private static final List<String> PUBLIC_PATHS = Arrays.asList(
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/refresh-token",
+        "/api/auth/microsoft/**",
+        "/v3/api-docs/**",
+        "/swagger-ui/**",
+        "/swagger-ui.html"
+    );
 
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
-
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            if (isApiRequest(request)) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("{\"message\":\"Unauthorized\"}");
-                response.setContentType("application/json");
-                return;
-            }
+        // Skip authentication for public paths
+        if (isPublicPath(request.getRequestURI())) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
-        username = jwtService.extractUsername(jwt);
-
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-            
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
+            return;
         }
-        filterChain.doFilter(request, response);
+
+        try {
+            jwt = authHeader.substring(7);
+            username = jwtService.extractUsername(jwt);
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            }
+            filterChain.doFilter(request, response);
+        } catch (UsernameNotFoundException e) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User not found");
+        } catch (AuthenticationException e) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
+        } catch (IllegalArgumentException e) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
+        }
     }
 
-    private boolean isApiRequest(HttpServletRequest request) {
-        String path = request.getServletPath();
-        return path.startsWith("/api/") && 
-               !path.startsWith("/api/auth/microsoft") && 
-               !path.equals("/api/auth/microsoft/callback") &&
-               !path.equals("/api/auth/microsoft/login");
+    private boolean isPublicPath(String requestURI) {
+        return PUBLIC_PATHS.stream().anyMatch(path -> 
+            requestURI.startsWith(path) || 
+            requestURI.matches(path.replace("**", ".*"))
+        );
     }
 }

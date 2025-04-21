@@ -1,0 +1,57 @@
+package com.hr_management.hr.service.impl;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.hr_management.hr.entity.LeavePolicy;
+import com.hr_management.hr.repository.LeavePolicyRepository;
+import com.hr_management.hr.service.LeavePolicyService;
+
+@Service
+public class LeavePolicyServiceImpl implements LeavePolicyService {
+
+    private final LeavePolicyRepository leavePolicyRepository;
+
+    @Autowired
+    public LeavePolicyServiceImpl(LeavePolicyRepository leavePolicyRepository) {
+        this.leavePolicyRepository = leavePolicyRepository;
+    }
+
+    @Override
+    public List<LeavePolicy> getAllLeavePolicies() {
+        return leavePolicyRepository.findAll();
+    }
+
+    @Override
+    public LeavePolicy getLeavePolicyById(Long id) {
+        return leavePolicyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Leave policy not found with id: " + id));
+    }
+
+    @Override
+    public LeavePolicy createLeavePolicy(LeavePolicy leavePolicy) {
+        return leavePolicyRepository.save(leavePolicy);
+    }
+
+    @Override
+    public LeavePolicy updateLeavePolicy(Long id, LeavePolicy leavePolicy) {
+        LeavePolicy existingPolicy = getLeavePolicyById(id);
+        existingPolicy.setName(leavePolicy.getName());
+        existingPolicy.setDescription(leavePolicy.getDescription());
+        existingPolicy.setDaysPerYear(leavePolicy.getDaysPerYear());
+        existingPolicy.setCarryForwardDays(leavePolicy.getCarryForwardDays());
+        existingPolicy.setMaxConsecutiveDays(leavePolicy.getMaxConsecutiveDays());
+        existingPolicy.setMinNoticeDays(leavePolicy.getMinNoticeDays());
+        existingPolicy.setRequiresApproval(leavePolicy.isRequiresApproval());
+        existingPolicy.setActive(leavePolicy.isActive());
+        return leavePolicyRepository.save(existingPolicy);
+    }
+
+    @Override
+    public void deleteLeavePolicy(Long id) {
+        LeavePolicy leavePolicy = getLeavePolicyById(id);
+        leavePolicyRepository.delete(leavePolicy);
+    }
+} 

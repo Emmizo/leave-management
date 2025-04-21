@@ -7,13 +7,11 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.hr_management.hr.entity.Employee;
-import com.hr_management.hr.entity.Leave;
 import com.hr_management.hr.entity.User;
 import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
-import com.hr_management.hr.repository.LeaveRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmployeeService;
 import com.hr_management.hr.service.LeaveService;
@@ -41,10 +39,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setEmail(employeeDto.getEmail());
         
         // Set default annual leave balance if not provided
-        employee.setAnnualLeaveBalance(
-            employeeDto.getAnnualLeaveBalance() != null ? 
-            employeeDto.getAnnualLeaveBalance() : 20
-        );
+        employee.setAnnualLeaveBalance(Optional.ofNullable(employeeDto.getAnnualLeaveBalance()).orElse(20));
         
         // Set default Microsoft ID if not provided
         employee.setMicrosoftId(

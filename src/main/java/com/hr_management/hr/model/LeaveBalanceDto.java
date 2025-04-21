@@ -1,5 +1,8 @@
 package com.hr_management.hr.model;
 
+import java.time.LocalDate;
+import java.util.List;
+
 import com.hr_management.hr.enums.LeaveType;
 
 public class LeaveBalanceDto {
@@ -9,6 +12,28 @@ public class LeaveBalanceDto {
     private int daysAllowed;
     private String status;
     private String colorCode; // For UI styling (blue, green, cyan, yellow etc)
+    private List<LeaveDateRange> leaveDates;
+
+    // Inner class to hold leave date ranges
+    public static class LeaveDateRange {
+        private LocalDate startDate;
+        private LocalDate endDate;
+        private int numberOfDays;
+        private boolean isHalfDay;
+
+        public LeaveDateRange(LocalDate startDate, LocalDate endDate, int numberOfDays, boolean isHalfDay) {
+            this.startDate = startDate;
+            this.endDate = endDate;
+            this.numberOfDays = numberOfDays;
+            this.isHalfDay = isHalfDay;
+        }
+
+        // Getters
+        public LocalDate getStartDate() { return startDate; }
+        public LocalDate getEndDate() { return endDate; }
+        public int getNumberOfDays() { return numberOfDays; }
+        public boolean isHalfDay() { return isHalfDay; }
+    }
 
     // Default constructor
     public LeaveBalanceDto() {
@@ -16,13 +41,14 @@ public class LeaveBalanceDto {
 
     // All-args constructor
     public LeaveBalanceDto(LeaveType leaveType, String name, int daysAvailable, 
-                          int daysAllowed, String status, String colorCode) {
+                          int daysAllowed, String status, String colorCode, List<LeaveDateRange> leaveDates) {
         this.leaveType = leaveType;
         this.name = name;
         this.daysAvailable = daysAvailable;
         this.daysAllowed = daysAllowed;
         this.status = status;
         this.colorCode = colorCode;
+        this.leaveDates = leaveDates;
     }
 
     // Builder pattern
@@ -37,6 +63,7 @@ public class LeaveBalanceDto {
         private int daysAllowed;
         private String status;
         private String colorCode;
+        private List<LeaveDateRange> leaveDates;
 
         public Builder leaveType(LeaveType leaveType) {
             this.leaveType = leaveType;
@@ -68,8 +95,13 @@ public class LeaveBalanceDto {
             return this;
         }
 
+        public Builder leaveDates(List<LeaveDateRange> leaveDates) {
+            this.leaveDates = leaveDates;
+            return this;
+        }
+
         public LeaveBalanceDto build() {
-            return new LeaveBalanceDto(leaveType, name, daysAvailable, daysAllowed, status, colorCode);
+            return new LeaveBalanceDto(leaveType, name, daysAvailable, daysAllowed, status, colorCode, leaveDates);
         }
     }
 
@@ -120,6 +152,14 @@ public class LeaveBalanceDto {
 
     public void setColorCode(String colorCode) {
         this.colorCode = colorCode;
+    }
+
+    public List<LeaveDateRange> getLeaveDates() {
+        return leaveDates;
+    }
+
+    public void setLeaveDates(List<LeaveDateRange> leaveDates) {
+        this.leaveDates = leaveDates;
     }
 
     @Override

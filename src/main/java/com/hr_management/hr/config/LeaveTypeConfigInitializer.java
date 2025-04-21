@@ -51,15 +51,30 @@ public class LeaveTypeConfigInitializer implements CommandLineRunner {
                     config.setRequiresDocument(true);
                     config.setDescription("Sick Leave - Requires medical certificate");
                 }
-                case BEREAVEMENT -> {
+                case COMPASSIONATE -> {
                     config.setAnnualLimit(5);
                     config.setRequiresDocument(true);
-                    config.setDescription("Bereavement Leave - Requires death certificate");
+                    config.setDescription("Compassionate Leave - Requires death certificate");
                 }
                 case MATERNITY -> {
                     config.setAnnualLimit(90);
                     config.setRequiresDocument(true);
                     config.setDescription("Maternity Leave - Requires medical certificate");
+                }
+                case PATERNITY -> {
+                    config.setAnnualLimit(14);
+                    config.setRequiresDocument(true);
+                    config.setDescription("Paternity Leave - For new fathers");
+                }
+                case UNPAID -> {
+                    config.setAnnualLimit(365);
+                    config.setRequiresDocument(false);
+                    config.setDescription("Unpaid Leave - No annual limit");
+                }
+                case OTHER -> {
+                    config.setAnnualLimit(0);
+                    config.setRequiresDocument(false);
+                    config.setDescription("Other Leave - Requires approval");
                 }
                 default -> {
                     config.setAnnualLimit(0);

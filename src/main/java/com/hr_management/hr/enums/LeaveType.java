@@ -10,15 +10,18 @@ public enum LeaveType {
     @Schema(description = "Sick Leave")
     SICK,
     
+    @Schema(description = "Compassionate Leave")
+    COMPASSIONATE,
+    
     @Schema(description = "Maternity Leave")
     MATERNITY,
     
     @Schema(description = "Paternity Leave")
     PATERNITY,
     
-    @Schema(description = "Bereavement Leave")
-    BEREAVEMENT,
-    
     @Schema(description = "Unpaid Leave")
-    UNPAID
+    UNPAID,
+    
+    @Schema(description = "Other types of leave")
+    OTHER
 } 

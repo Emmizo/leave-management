@@ -1,12 +1,5 @@
 package com.hr_management.hr.service.impl;
 
-import com.hr_management.hr.service.FileStorageService;
-import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -14,6 +7,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.hr_management.hr.service.FileStorageService;
+
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
@@ -35,13 +37,16 @@ public class FileStorageServiceImpl implements FileStorageService {
             return null; // Or throw exception if file is mandatory but passed as null
         }
 
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            originalFilename = "unknown_file";
+        }
+        originalFilename = StringUtils.cleanPath(originalFilename);
         if (originalFilename.contains("..")) {
             // This is a security check
             throw new IOException("Cannot store file with relative path outside current directory " + originalFilename);
         }
 
-        // Generate a unique filename to avoid collisions
         String fileExtension = "";
         int lastDot = originalFilename.lastIndexOf('.');
         if (lastDot > 0) {

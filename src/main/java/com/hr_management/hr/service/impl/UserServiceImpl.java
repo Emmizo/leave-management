@@ -7,9 +7,14 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.hr_management.hr.entity.Employee;
 import com.hr_management.hr.entity.Role;
 import com.hr_management.hr.entity.User;
+import com.hr_management.hr.exception.ResourceNotFoundException;
+import com.hr_management.hr.model.ProfileUpdateDto;
+import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.UserService;
 
@@ -19,10 +24,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
     
     private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -69,5 +76,47 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     @Override
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    @Transactional
+    public User updateProfile(Long userId, ProfileUpdateDto profileUpdateDto) {
+        logger.info("Updating profile for user ID: {}", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        
+        Employee employee = employeeRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "user", userId));
+
+        // Update User entity
+        if (profileUpdateDto.getEmail() != null && !profileUpdateDto.getEmail().equals(user.getEmail())) {
+            if (existsByEmail(profileUpdateDto.getEmail())) {
+                throw new RuntimeException("Email already exists");
+            }
+            user.setEmail(profileUpdateDto.getEmail());
+        }
+        
+        if (profileUpdateDto.getProfilePicture() != null) {
+            user.setProfilePicture(profileUpdateDto.getProfilePicture());
+        }
+
+        // Update Employee entity
+        if (profileUpdateDto.getFirstName() != null) {
+            employee.setFirstName(profileUpdateDto.getFirstName());
+        }
+        if (profileUpdateDto.getLastName() != null) {
+            employee.setLastName(profileUpdateDto.getLastName());
+        }
+        if (profileUpdateDto.getDepartment() != null) {
+            employee.setDepartment(profileUpdateDto.getDepartment());
+        }
+        if (profileUpdateDto.getPosition() != null) {
+            employee.setPosition(profileUpdateDto.getPosition());
+        }
+
+        // Save both entities
+        employeeRepository.save(employee);
+        return userRepository.save(user);
     }
 }

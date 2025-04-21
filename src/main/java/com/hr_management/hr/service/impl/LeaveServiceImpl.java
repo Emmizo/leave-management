@@ -76,9 +76,11 @@ public class LeaveServiceImpl implements LeaveService {
         if (leaveRequest.getNumberOfDays() != null) {
             numberOfDays = leaveRequest.getNumberOfDays();
         } else {
-            // Calculate numberOfDays
-            long daysBetween = ChronoUnit.DAYS.between(leaveRequest.getStartDate(), leaveRequest.getEndDate());
-            numberOfDays = (int) daysBetween + 1; // Add 1 for inclusive days
+            // Calculate numberOfDays including both start and end dates
+            numberOfDays = (int) ChronoUnit.DAYS.between(
+                leaveRequest.getStartDate(), 
+                leaveRequest.getEndDate()
+            ) + 1; // Add 1 to include both start and end dates
         }
 
         // Convert String type to LeaveType enum
@@ -314,38 +316,62 @@ public class LeaveServiceImpl implements LeaveService {
         // Get all leave type configurations
         List<LeaveTypeConfig> allConfigs = leaveTypeConfigRepository.findAll();
         
-        // Get employee's approved leaves for the current year
+        // Get all leaves for the employee in a single query
         int currentYear = LocalDate.now().getYear();
-        List<Leave> approvedLeaves = leaveRepository.findByEmployeeId(employeeId).stream()
-                .filter(leave -> leave.getStartDate().getYear() == currentYear 
-                        && leave.getStatus() == LeaveStatus.APPROVED)
+        List<Leave> allLeaves = leaveRepository.findByEmployeeId(employeeId);
+        
+        // Filter leaves for current year
+        List<Leave> currentYearLeaves = allLeaves.stream()
+                .filter(leave -> leave.getStartDate().getYear() == currentYear)
                 .toList();
 
         return allConfigs.stream()
                 .filter(LeaveTypeConfig::getIsActive)
                 .map(config -> {
-                    // Calculate used days for this leave type
-                    int usedDays = approvedLeaves.stream()
+                    // Get all leaves (both approved and pending) for this type
+                    List<LeaveBalanceDto.LeaveDateRange> leaveDateRanges = currentYearLeaves.stream()
                             .filter(leave -> leave.getLeaveType() == config.getLeaveType())
-                            .mapToInt(Leave::getNumberOfDays)
+                            .map(leave -> new LeaveBalanceDto.LeaveDateRange(
+                                leave.getStartDate(),
+                                leave.getEndDate(),
+                                leave.getNumberOfDays(),
+                                leave.getLeaveDuration() == LeaveDuration.HALF_DAY
+                            ))
+                            .collect(Collectors.toList());
+
+                    // Calculate used days for this leave type (approved leaves)
+                    double usedDays = currentYearLeaves.stream()
+                            .filter(leave -> leave.getStatus() == LeaveStatus.APPROVED 
+                                    && leave.getLeaveType() == config.getLeaveType())
+                            .mapToDouble(leave -> {
+                                // Adjust for half-day leaves
+                                if (leave.getLeaveDuration() == LeaveDuration.HALF_DAY) {
+                                    return leave.getNumberOfDays() * 0.5;
+                                }
+                                return leave.getNumberOfDays();
+                            })
                             .sum();
                     
                     // Calculate remaining days
-                    int remainingDays = config.getAnnualLimit() - usedDays;
+                    int remainingDays = Math.max(0, config.getAnnualLimit() - (int) Math.ceil(usedDays));
                     
                     // Get pending leaves for this type
-                    long pendingDays = leaveRepository.findByEmployeeId(employeeId).stream()
-                            .filter(leave -> 
-                                leave.getStartDate().getYear() == currentYear &&
-                                leave.getStatus() == LeaveStatus.PENDING &&
-                                leave.getLeaveType() == config.getLeaveType())
-                            .mapToInt(Leave::getNumberOfDays)
+                    double pendingDays = currentYearLeaves.stream()
+                            .filter(leave -> leave.getStatus() == LeaveStatus.PENDING 
+                                    && leave.getLeaveType() == config.getLeaveType())
+                            .mapToDouble(leave -> {
+                                // Adjust for half-day leaves
+                                if (leave.getLeaveDuration() == LeaveDuration.HALF_DAY) {
+                                    return leave.getNumberOfDays() * 0.5;
+                                }
+                                return leave.getNumberOfDays();
+                            })
                             .sum();
 
                     // Determine status text
                     String status;
                     if (pendingDays > 0) {
-                        status = String.format("Available (%d days pending approval)", pendingDays);
+                        status = String.format("Available (%d days pending approval)", (int) Math.ceil(pendingDays));
                     } else {
                         status = "Available";
                     }
@@ -354,8 +380,11 @@ public class LeaveServiceImpl implements LeaveService {
                     String colorCode = switch (config.getLeaveType()) {
                         case PTO -> "#1976D2";  // Blue
                         case SICK -> "#2E7D32";    // Green
-                        case BEREAVEMENT -> "#00BCD4"; // Cyan
+                        case COMPASSIONATE -> "#00BCD4"; // Cyan
                         case MATERNITY -> "#FFC107";     // Yellow
+                        case PATERNITY -> "#9C27B0";     // Purple
+                        case UNPAID -> "#757575";      // Grey
+                        case OTHER -> "#FF5722";      // Orange
                         default -> "#757575";      // Grey
                     };
 
@@ -366,6 +395,7 @@ public class LeaveServiceImpl implements LeaveService {
                             .daysAllowed(config.getAnnualLimit())
                             .status(status)
                             .colorCode(colorCode)
+                            .leaveDates(leaveDateRanges)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -375,7 +405,7 @@ public class LeaveServiceImpl implements LeaveService {
         return switch (leaveType) {
             case PTO -> "Annual Leave";
             case SICK -> "Sick Leave";
-            case BEREAVEMENT -> "Compassionate";
+            case COMPASSIONATE -> "Compassionate";
             case MATERNITY -> "Maternity";
             default -> leaveType.toString();
         };

@@ -14,7 +14,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -39,9 +38,9 @@ import com.hr_management.hr.model.RegisterRequestDto;
 import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
-import com.hr_management.hr.security.JwtService;
 import com.hr_management.hr.service.EmailService;
 import com.hr_management.hr.service.EmployeeService;
+import com.hr_management.hr.service.JwtService;
 import com.hr_management.hr.service.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -134,8 +133,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @Operation(summary = "Register a new user and employee (Admin/HR)", 
-               description = "Creates a new user account and associated employee record. Sends welcome email. Requires ADMIN or HR_MANAGER role.",
+    @Operation(summary = "Register a new user", 
+               description = "Creates a new user account and associated employee record. Sends welcome email.",
                security = @SecurityRequirement(name = "bearerAuth"),
                requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                    description = "Details for registering a new user and employee",
@@ -149,11 +148,8 @@ public class AuthController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User registered successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid input (check validation errors)"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated"),
-        @ApiResponse(responseCode = "403", description = "User not authorized (Requires Admin/HR Manager)"),
         @ApiResponse(responseCode = "409", description = "Username or email already exists")
     })
-    @PreAuthorize("hasRole('ADMIN') or hasRole('HR_MANAGER')")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequestDto registerRequest) {
         
