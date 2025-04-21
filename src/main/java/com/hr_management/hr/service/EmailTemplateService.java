@@ -22,7 +22,7 @@ public class EmailTemplateService {
         this.userRepository = userRepository;
     }
 
-    public void sendWelcomeEmail(User user, Employee employee) {
+    public void sendWelcomeEmail(User user, Employee employee, String plainPassword) {
         String subject = "Welcome to the HR Management System!";
         String text = String.format("""
             Hello %s,
@@ -31,6 +31,7 @@ public class EmailTemplateService {
 
             Account Details:
             - Username: %s
+            - Password: %s
             - Email: %s
             - Department: %s
             - Position: %s
@@ -42,6 +43,7 @@ public class EmailTemplateService {
             """,
             employee.getFirstName(),
             user.getUsername(),
+            plainPassword,
             user.getEmail(),
             employee.getDepartment(),
             employee.getPosition()
@@ -217,6 +219,30 @@ public class EmailTemplateService {
             if (admin.getEmail() != null) {
                 emailService.sendSimpleMessage(admin.getEmail(), adminSubject, adminText);
             }
+        }
+    }
+
+    public void sendPasswordResetEmail(User user, Employee employee, String resetToken) {
+        String subject = "Password Reset Request";
+        String text = String.format("""
+            Hello %s,
+
+            You have requested to reset your password for the HR Management System.
+
+            To reset your password, please use the following token:
+            %s
+
+            If you did not request a password reset, please ignore this email.
+
+            Best regards,
+            HR Management Team
+            """,
+            employee.getFirstName(),
+            resetToken
+        );
+
+        if (user.getEmail() != null) {
+            emailService.sendSimpleMessage(user.getEmail(), subject, text);
         }
     }
 } 

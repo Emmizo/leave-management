@@ -46,7 +46,9 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/microsoft/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/microsoft/**", 
+                                "/api/auth/forgot-password", "/api/auth/reset-password", 
+                                "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/profile/**").authenticated()
                 .requestMatchers("/api/leave-policies/**").hasAnyRole("ADMIN", "HR_MANAGER")
                 .anyRequest().authenticated()

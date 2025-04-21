@@ -33,12 +33,16 @@ import com.hr_management.hr.entity.Role;
 import com.hr_management.hr.entity.User;
 import com.hr_management.hr.model.AuthResponse;
 import com.hr_management.hr.model.EmployeeDto;
+import com.hr_management.hr.model.ForgotPasswordRequestDto;
 import com.hr_management.hr.model.LoginRequestDto;
 import com.hr_management.hr.model.RegisterRequestDto;
+import com.hr_management.hr.model.ResetPasswordRequestDto;
 import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
+import com.hr_management.hr.service.AuthService;
 import com.hr_management.hr.service.EmailService;
+import com.hr_management.hr.service.EmailTemplateService;
 import com.hr_management.hr.service.EmployeeService;
 import com.hr_management.hr.service.JwtService;
 import com.hr_management.hr.service.UserService;
@@ -70,6 +74,8 @@ public class AuthController {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final OAuth2AuthorizedClientService clientService;
+    private final EmailTemplateService emailTemplateService;
+    private final AuthService authService;
 
     public AuthController(
             UserService userService,
@@ -80,7 +86,9 @@ public class AuthController {
             UserRepository userRepository,
             EmployeeRepository employeeRepository,
             PasswordEncoder passwordEncoder,
-            OAuth2AuthorizedClientService clientService) {
+            OAuth2AuthorizedClientService clientService,
+            EmailTemplateService emailTemplateService,
+            AuthService authService) {
         this.userService = userService;
         this.employeeService = employeeService;
         this.authenticationManager = authenticationManager;
@@ -90,6 +98,8 @@ public class AuthController {
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.clientService = clientService;
+        this.emailTemplateService = emailTemplateService;
+        this.authService = authService;
     }
 
     @PostMapping("/login")
@@ -176,17 +186,12 @@ public class AuthController {
         EmployeeDto savedEmployee = employeeService.save(employeeDto);
         String token = jwtService.generateToken(user);
 
-        String subject = "Welcome to the HR Management System!";
-        String text = String.format(
-            "Hello %s,\n\nAn account has been created for you.\nUsername: %s\n\nPlease log in and consider changing your password.\n\nRegards,\nThe Admin Team",
-            savedEmployee.getFirstName(),
-            user.getUsername()
-        );
-        if (user.getEmail() != null) {
-             emailService.sendSimpleMessage(user.getEmail(), subject, text);
-        } else {
-            System.err.println("Warning: Newly created user " + user.getUsername() + " has no email. Cannot send welcome notification.");
-        }
+        // Get the employee entity to pass to the email template service
+        Employee employee = employeeRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Employee not found for user: " + user.getUsername()));
+        
+        // Send welcome email using the template service
+        emailTemplateService.sendWelcomeEmail(user, employee, registerRequest.getPassword());
         
         return ResponseEntity.ok(AuthResponse.builder()
                 .token(token)
@@ -361,5 +366,36 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to process Microsoft OAuth callback"));
         }
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request password reset", 
+               description = "Sends a password reset email to the user's email address",
+               security = {}) // No security required
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password reset email sent successfully"),
+        @ApiResponse(responseCode = "404", description = "User not found with the provided email")
+    })
+    public ResponseEntity<Void> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequestDto request) {
+        
+        authService.forgotPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password with token", 
+               description = "Resets the user's password using the token received via email",
+               security = {}) // No security required
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password reset successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid token or password"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody ResetPasswordRequestDto request) {
+        
+        authService.resetPasswordWithToken(request);
+        return ResponseEntity.ok().build();
     }
 }

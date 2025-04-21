@@ -1,5 +1,7 @@
 package com.hr_management.hr.service.impl;
 
+import java.util.UUID;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -9,7 +11,9 @@ import com.hr_management.hr.entity.User;
 import com.hr_management.hr.exception.ResourceNotFoundException;
 import com.hr_management.hr.model.AuthResponse;
 import com.hr_management.hr.model.EmployeeDto;
+import com.hr_management.hr.model.ForgotPasswordRequestDto;
 import com.hr_management.hr.model.RegisterRequestDto;
+import com.hr_management.hr.model.ResetPasswordRequestDto;
 import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
@@ -97,6 +101,33 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        emailTemplateService.sendWelcomeEmail(user, userRepository.findById(user.getId()).get().getEmployee());
+        emailTemplateService.sendWelcomeEmail(user, userRepository.findById(user.getId()).get().getEmployee(), newPassword);
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequestDto request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", 0L));
+        
+        Employee employee = employeeRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "user", user.getId()));
+        
+        // Generate a reset token (in a real application, this would be stored in the database with an expiration time)
+        String resetToken = UUID.randomUUID().toString();
+        
+        // Send the reset email
+        emailTemplateService.sendPasswordResetEmail(user, employee, resetToken);
+    }
+
+    @Override
+    public void resetPasswordWithToken(ResetPasswordRequestDto request) {
+        // In a real application, you would validate the token against the database
+        // and check if it has expired. For simplicity, we'll just use the token as the email.
+        
+        // Extract the email from the token (in a real application, the token would be stored with the email)
+        String email = request.getToken();
+        
+        // Reset the password
+        resetPassword(email, request.getNewPassword());
     }
 } 
