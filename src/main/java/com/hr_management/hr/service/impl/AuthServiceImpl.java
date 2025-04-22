@@ -1,5 +1,6 @@
 package com.hr_management.hr.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,7 +19,7 @@ import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.AuthService;
-import com.hr_management.hr.service.EmailTemplateService;
+import com.hr_management.hr.service.HtmlEmailTemplateService;
 import com.hr_management.hr.service.JwtService;
 
 @Service
@@ -27,18 +28,18 @@ public class AuthServiceImpl implements AuthService {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final EmailTemplateService emailTemplateService;
+    private final HtmlEmailTemplateService htmlEmailTemplateService;
 
     public AuthServiceImpl(UserRepository userRepository, 
                           EmployeeRepository employeeRepository, 
                           PasswordEncoder passwordEncoder, 
                           JwtService jwtService, 
-                          EmailTemplateService emailTemplateService) {
+                          HtmlEmailTemplateService htmlEmailTemplateService) {
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.emailTemplateService = emailTemplateService;
+        this.htmlEmailTemplateService = htmlEmailTemplateService;
     }
 
     @Override
@@ -101,33 +102,39 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        emailTemplateService.sendWelcomeEmail(user, userRepository.findById(user.getId()).get().getEmployee(), newPassword);
+        htmlEmailTemplateService.sendWelcomeEmail(user, userRepository.findById(user.getId()).get().getEmployee(), newPassword);
     }
 
     @Override
     public void forgotPassword(ForgotPasswordRequestDto request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", 0L));
-        
-        Employee employee = employeeRepository.findByUser(user)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee", "user", user.getId()));
-        
-        // Generate a reset token (in a real application, this would be stored in the database with an expiration time)
+
         String resetToken = UUID.randomUUID().toString();
-        
-        // Send the reset email
-        emailTemplateService.sendPasswordResetEmail(user, employee, resetToken);
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiryDate(LocalDateTime.now().plusHours(24));
+        userRepository.save(user);
+
+        // Send password reset email with link
+        htmlEmailTemplateService.sendPasswordResetEmail(user, resetToken);
     }
 
     @Override
     public void resetPasswordWithToken(ResetPasswordRequestDto request) {
-        // In a real application, you would validate the token against the database
-        // and check if it has expired. For simplicity, we'll just use the token as the email.
-        
-        // Extract the email from the token (in a real application, the token would be stored with the email)
-        String email = request.getToken();
-        
-        // Reset the password
-        resetPassword(email, request.getNewPassword());
+        // Find user by reset token
+        User user = userRepository.findByResetToken(request.getToken())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "reset token", 0L));
+
+        // Validate token expiry
+        if (user.getResetTokenExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        // Clear the reset token
+        user.setResetToken(null);
+        user.setResetTokenExpiryDate(null);
+        userRepository.save(user);
     }
 } 

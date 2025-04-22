@@ -21,6 +21,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,18 +33,20 @@ import com.hr_management.hr.entity.Employee;
 import com.hr_management.hr.entity.Role;
 import com.hr_management.hr.entity.User;
 import com.hr_management.hr.model.AuthResponse;
+import com.hr_management.hr.model.ChangePasswordRequestDto;
 import com.hr_management.hr.model.EmployeeDto;
+import com.hr_management.hr.model.ErrorResponse;
 import com.hr_management.hr.model.ForgotPasswordRequestDto;
 import com.hr_management.hr.model.LoginRequestDto;
+import com.hr_management.hr.model.MessageResponse;
 import com.hr_management.hr.model.RegisterRequestDto;
 import com.hr_management.hr.model.ResetPasswordRequestDto;
 import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.AuthService;
-import com.hr_management.hr.service.EmailService;
-import com.hr_management.hr.service.EmailTemplateService;
 import com.hr_management.hr.service.EmployeeService;
+import com.hr_management.hr.service.HtmlEmailTemplateService;
 import com.hr_management.hr.service.JwtService;
 import com.hr_management.hr.service.UserService;
 
@@ -69,12 +72,11 @@ public class AuthController {
     private final EmployeeService employeeService;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final EmailService emailService;
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final OAuth2AuthorizedClientService clientService;
-    private final EmailTemplateService emailTemplateService;
+    private final HtmlEmailTemplateService htmlEmailTemplateService;
     private final AuthService authService;
 
     public AuthController(
@@ -82,23 +84,21 @@ public class AuthController {
             EmployeeService employeeService,
             AuthenticationManager authenticationManager,
             JwtService jwtService,
-            EmailService emailService,
             UserRepository userRepository,
             EmployeeRepository employeeRepository,
             PasswordEncoder passwordEncoder,
             OAuth2AuthorizedClientService clientService,
-            EmailTemplateService emailTemplateService,
+            HtmlEmailTemplateService htmlEmailTemplateService,
             AuthService authService) {
         this.userService = userService;
         this.employeeService = employeeService;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
-        this.emailService = emailService;
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.clientService = clientService;
-        this.emailTemplateService = emailTemplateService;
+        this.htmlEmailTemplateService = htmlEmailTemplateService;
         this.authService = authService;
     }
 
@@ -163,9 +163,12 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequestDto registerRequest) {
         
+        // Generate a random password regardless of whether one was provided
+        String randomPassword = generateRandomPassword();
+        
         User user = userService.createUser(
             registerRequest.getUsername(), 
-            registerRequest.getPassword(), 
+            randomPassword, 
             registerRequest.getEmail()
         );
         
@@ -190,13 +193,48 @@ public class AuthController {
         Employee employee = employeeRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Employee not found for user: " + user.getUsername()));
         
-        // Send welcome email using the template service
-        emailTemplateService.sendWelcomeEmail(user, employee, registerRequest.getPassword());
+        // Send welcome email using the HTML template service with the random password
+        htmlEmailTemplateService.sendWelcomeEmail(user, employee, randomPassword);
         
         return ResponseEntity.ok(AuthResponse.builder()
                 .token(token)
                 .user(savedEmployee)
                 .build());
+    }
+
+    /**
+     * Generates a random password that meets security requirements
+     * @return A secure random password
+     */
+    private String generateRandomPassword() {
+        String upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lowerCase = "abcdefghijklmnopqrstuvwxyz";
+        String numbers = "0123456789";
+        String specialChars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+        
+        // Ensure at least one of each character type
+        StringBuilder password = new StringBuilder();
+        password.append(upperCase.charAt((int)(Math.random() * upperCase.length())));
+        password.append(lowerCase.charAt((int)(Math.random() * lowerCase.length())));
+        password.append(numbers.charAt((int)(Math.random() * numbers.length())));
+        password.append(specialChars.charAt((int)(Math.random() * specialChars.length())));
+        
+        // Add additional random characters to make it 12 characters long
+        String allChars = upperCase + lowerCase + numbers + specialChars;
+        for (int i = 0; i < 8; i++) {
+            password.append(allChars.charAt((int)(Math.random() * allChars.length())));
+        }
+        
+        // Shuffle the password
+        char[] passwordArray = password.toString().toCharArray();
+        for (int i = passwordArray.length - 1; i > 0; i--) {
+            int j = (int)(Math.random() * (i + 1));
+            char temp = passwordArray[i];
+            passwordArray[i] = passwordArray[j];
+            passwordArray[j] = temp;
+        }
+        
+        return new String(passwordArray);
     }
 
     @GetMapping("/me")
@@ -311,14 +349,23 @@ public class AuthController {
             HttpEntity<?> userInfoRequest = new HttpEntity<>(userInfoHeaders);
 
             RestTemplate restTemplate = new RestTemplate();
+            @SuppressWarnings("rawtypes")
             ResponseEntity<Map> userInfoResponse = restTemplate.exchange(
                 userInfoEndpoint,
                 HttpMethod.GET,
                 userInfoRequest,
                 Map.class
             );
-
+            
+            @SuppressWarnings("unchecked")
             Map<String, Object> userInfo = userInfoResponse.getBody();
+            
+            if (userInfo == null) {
+                logger.error("User info response body is null");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Failed to retrieve user information from Microsoft"));
+            }
+            
             String email = (String) userInfo.get("mail");
             String name = (String) userInfo.get("displayName");
 
@@ -361,10 +408,14 @@ public class AuthController {
                     .user(employeeDto)
                     .build());
 
-        } catch (Exception e) {
+        } catch (OAuth2AuthenticationException | UsernameNotFoundException | IllegalStateException e) {
             logger.error("Error during Microsoft OAuth callback", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Failed to authenticate with Microsoft: " + e.getMessage()));
+        } catch (RuntimeException e) {
+            logger.error("Unexpected error during Microsoft OAuth callback", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to process Microsoft OAuth callback"));
+                    .body(Map.of("error", "An unexpected error occurred"));
         }
     }
 
@@ -397,5 +448,41 @@ public class AuthController {
         
         authService.resetPasswordWithToken(request);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Change password", 
+               description = "Change user's password after verifying current password",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password changed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request or current password is incorrect"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or expired token")
+    })
+    public ResponseEntity<?> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequestDto request) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse("User not authenticated"));
+            }
+
+            // Verify current password
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Current password is incorrect"));
+            }
+
+            // Update password
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                .body(new ErrorResponse(e.getMessage()));
+        }
     }
 }

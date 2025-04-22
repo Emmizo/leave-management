@@ -30,7 +30,6 @@ import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.LeaveRepository;
 import com.hr_management.hr.repository.LeaveTypeConfigRepository;
-import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmailService;
 import com.hr_management.hr.service.EmailTemplateService;
 import com.hr_management.hr.service.FileStorageService;
@@ -46,7 +45,6 @@ public class LeaveServiceImpl implements LeaveService {
     private final EmployeeRepository employeeRepository;
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
-    private final UserRepository userRepository;
     private final LeaveTypeConfigRepository leaveTypeConfigRepository;
     private final EmailTemplateService emailTemplateService;
     private final LeavePolicyService leavePolicyService;
@@ -55,7 +53,6 @@ public class LeaveServiceImpl implements LeaveService {
                            EmployeeRepository employeeRepository, 
                            FileStorageService fileStorageService, 
                            EmailService emailService, 
-                           UserRepository userRepository, 
                            LeaveTypeConfigRepository leaveTypeConfigRepository, 
                            EmailTemplateService emailTemplateService,
                            LeavePolicyService leavePolicyService) {
@@ -63,7 +60,6 @@ public class LeaveServiceImpl implements LeaveService {
         this.employeeRepository = employeeRepository;
         this.fileStorageService = fileStorageService;
         this.emailService = emailService;
-        this.userRepository = userRepository;
         this.leaveTypeConfigRepository = leaveTypeConfigRepository;
         this.emailTemplateService = emailTemplateService;
         this.leavePolicyService = leavePolicyService;
@@ -273,7 +269,6 @@ public class LeaveServiceImpl implements LeaveService {
              throw new IllegalStateException("Leave record with ID " + leaveId + " is not associated with any employee.");
         }
 
-        LeaveStatus oldStatus = leave.getStatus();
         LeaveStatus newStatus = LeaveStatus.valueOf(statusUpdate.getStatus().toUpperCase());
         leave.setStatus(newStatus);
         

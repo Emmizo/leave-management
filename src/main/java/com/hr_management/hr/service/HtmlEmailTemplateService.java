@@ -293,28 +293,41 @@ public class HtmlEmailTemplateService {
         emailService.sendHtmlMessage("hr@company.com", adminTitle, getEmailTemplate(adminTitle, adminContent));
     }
 
-    public void sendPasswordResetEmail(User user, Employee employee, String resetToken) {
-        String title = "Password Reset Request";
-        String content = String.format("""
-            <p>Hello <strong>%s</strong>,</p>
-            
-            <p>You have requested to reset your password for the HR Management System.</p>
-            
-            <div class="info-box">
-                <h3>Reset Token:</h3>
-                <p><strong>%s</strong></p>
+    public void sendPasswordResetEmail(User user, String resetToken) {
+        String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
+        String subject = "Password Reset Request";
+        String htmlContent = """
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2c3e50;">Password Reset Request</h2>
+                <p>Hello %s,</p>
+                <p>You have requested to reset your password for the HR Management System.</p>
+                <p>Please click the button below to reset your password:</p>
+                <p style="text-align: center;">
+                    <a href="%s" 
+                       style="background-color: #3498db; 
+                              color: white; 
+                              padding: 12px 24px; 
+                              text-decoration: none; 
+                              border-radius: 4px; 
+                              display: inline-block;
+                              margin: 16px 0;">
+                        Reset Password
+                    </a>
+                </p>
+                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                <p><a href="%s">%s</a></p>
+                <p>This link will expire in 24 hours.</p>
+                <p>If you did not request a password reset, please ignore this email.</p>
+                <br>
+                <p>Best regards,<br>HR Management Team</p>
             </div>
-            
-            <p>If you did not request a password reset, please ignore this email.</p>
-            
-            <p>Best regards,<br>HR Management Team</p>
-            """,
-            employee.getFirstName(),
-            resetToken
-        );
+            """.formatted(
+                user.getUsername(),
+                resetLink,
+                resetLink,
+                resetLink
+            );
 
-        if (user.getEmail() != null) {
-            emailService.sendHtmlMessage(user.getEmail(), title, getEmailTemplate(title, content));
-        }
+        emailService.sendHtmlMessage(user.getEmail(), subject, htmlContent);
     }
 } 
