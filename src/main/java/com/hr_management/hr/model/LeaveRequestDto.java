@@ -21,14 +21,14 @@ public class LeaveRequestDto {
     private Long employeeId;
     private Integer holdDays;
     private String leaveDuration;
-    private Integer numberOfDays;
+    private Double numberOfDays;
 
     // Default constructor
     public LeaveRequestDto() {
     }
 
     // All-args constructor
-    public LeaveRequestDto(LocalDate startDate, LocalDate endDate, String reason, String type, Long employeeId, Integer holdDays, String leaveDuration, Integer numberOfDays) {
+    public LeaveRequestDto(LocalDate startDate, LocalDate endDate, String reason, String type, Long employeeId, Integer holdDays, String leaveDuration, Double numberOfDays) {
         this.startDate = startDate;
         this.endDate = endDate;
         this.reason = reason;
@@ -96,11 +96,11 @@ public class LeaveRequestDto {
         this.leaveDuration = leaveDuration;
     }
 
-    public Integer getNumberOfDays() {
+    public Double getNumberOfDays() {
         return numberOfDays;
     }
 
-    public void setNumberOfDays(Integer numberOfDays) {
+    public void setNumberOfDays(Double numberOfDays) {
         this.numberOfDays = numberOfDays;
     }
 
@@ -117,7 +117,7 @@ public class LeaveRequestDto {
         private Long employeeId;
         private Integer holdDays;
         private String leaveDuration;
-        private Integer numberOfDays;
+        private Double numberOfDays;
 
         public Builder startDate(LocalDate startDate) {
             this.startDate = startDate;
@@ -154,7 +154,7 @@ public class LeaveRequestDto {
             return this;
         }
 
-        public Builder numberOfDays(Integer numberOfDays) {
+        public Builder numberOfDays(Double numberOfDays) {
             this.numberOfDays = numberOfDays;
             return this;
         }

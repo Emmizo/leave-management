@@ -2,10 +2,10 @@ package com.hr_management.hr.service.impl;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hr_management.hr.entity.LeavePolicy;
+import com.hr_management.hr.enums.LeaveType;
 import com.hr_management.hr.repository.LeavePolicyRepository;
 import com.hr_management.hr.service.LeavePolicyService;
 
@@ -14,7 +14,6 @@ public class LeavePolicyServiceImpl implements LeavePolicyService {
 
     private final LeavePolicyRepository leavePolicyRepository;
 
-    @Autowired
     public LeavePolicyServiceImpl(LeavePolicyRepository leavePolicyRepository) {
         this.leavePolicyRepository = leavePolicyRepository;
     }
@@ -53,5 +52,16 @@ public class LeavePolicyServiceImpl implements LeavePolicyService {
     public void deleteLeavePolicy(Long id) {
         LeavePolicy leavePolicy = getLeavePolicyById(id);
         leavePolicyRepository.delete(leavePolicy);
+    }
+
+    @Override
+    public int getMaxConsecutiveDays(LeaveType leaveType) {
+        // Find the active leave policy matching the given leave type
+        return leavePolicyRepository.findAll().stream()
+                .filter(LeavePolicy::isActive)
+                .filter(policy -> policy.getName().equalsIgnoreCase(leaveType.name())) // Filter by leave type name (case-insensitive)
+                .findFirst()
+                .map(LeavePolicy::getMaxConsecutiveDays)
+                .orElse(0); // Return 0 if no matching active policy found
     }
 } 

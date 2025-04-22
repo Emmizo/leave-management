@@ -66,7 +66,7 @@ public class EmailTemplateService {
             - Type: %s
             - Start Date: %s
             - End Date: %s
-            - Duration: %d days
+            - Duration: %.1f days
             - Reason: %s
             - Hold Days: %.1f
             - Leave Duration: %s
@@ -105,7 +105,7 @@ public class EmailTemplateService {
             - Type: %s
             - Start Date: %s
             - End Date: %s
-            - Duration: %d days
+            - Duration: %.1f days
             - Reason: %s
             - Hold Days: %.1f
             - Leave Duration: %s
@@ -154,7 +154,7 @@ public class EmailTemplateService {
             - Type: %s
             - Start Date: %s
             - End Date: %s
-            - Duration: %d days
+            - Duration: %.1f days
             %s
 
             Best regards,
@@ -189,7 +189,7 @@ public class EmailTemplateService {
             - Type: %s
             - Start Date: %s
             - End Date: %s
-            - Duration: %d days
+            - Duration: %.1f days
             - Status: %s
             %s
 

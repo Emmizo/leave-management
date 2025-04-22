@@ -34,6 +34,7 @@ import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.EmailService;
 import com.hr_management.hr.service.EmailTemplateService;
 import com.hr_management.hr.service.FileStorageService;
+import com.hr_management.hr.service.LeavePolicyService;
 import com.hr_management.hr.service.LeaveService;
 
 @Service
@@ -48,6 +49,7 @@ public class LeaveServiceImpl implements LeaveService {
     private final UserRepository userRepository;
     private final LeaveTypeConfigRepository leaveTypeConfigRepository;
     private final EmailTemplateService emailTemplateService;
+    private final LeavePolicyService leavePolicyService;
 
     public LeaveServiceImpl(LeaveRepository leaveRepository, 
                            EmployeeRepository employeeRepository, 
@@ -55,7 +57,8 @@ public class LeaveServiceImpl implements LeaveService {
                            EmailService emailService, 
                            UserRepository userRepository, 
                            LeaveTypeConfigRepository leaveTypeConfigRepository, 
-                           EmailTemplateService emailTemplateService) {
+                           EmailTemplateService emailTemplateService,
+                           LeavePolicyService leavePolicyService) {
         this.leaveRepository = leaveRepository;
         this.employeeRepository = employeeRepository;
         this.fileStorageService = fileStorageService;
@@ -63,6 +66,7 @@ public class LeaveServiceImpl implements LeaveService {
         this.userRepository = userRepository;
         this.leaveTypeConfigRepository = leaveTypeConfigRepository;
         this.emailTemplateService = emailTemplateService;
+        this.leavePolicyService = leavePolicyService;
     }
 
     @Override
@@ -72,15 +76,31 @@ public class LeaveServiceImpl implements LeaveService {
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 
         // Use provided numberOfDays or calculate it
-        int numberOfDays;
+        Double numberOfDays;
         if (leaveRequest.getNumberOfDays() != null) {
             numberOfDays = leaveRequest.getNumberOfDays();
         } else {
             // Calculate numberOfDays including both start and end dates
-            numberOfDays = (int) ChronoUnit.DAYS.between(
+            numberOfDays = (double) ChronoUnit.DAYS.between(
                 leaveRequest.getStartDate(), 
                 leaveRequest.getEndDate()
-            ) + 1; // Add 1 to include both start and end dates
+            ) + 1.0; // Add 1.0 to include both start and end dates
+        }
+
+        // Handle Half-day leave duration
+        if (leaveRequest.getLeaveDuration() != null) {
+            try {
+                LeaveDuration duration = LeaveDuration.valueOf(leaveRequest.getLeaveDuration().toUpperCase());
+                if (duration == LeaveDuration.HALF_DAY) {
+                    numberOfDays = 0.5;
+                    // Ensure start and end dates are the same for half-day
+                    if (!leaveRequest.getStartDate().equals(leaveRequest.getEndDate())) {
+                        throw new LeaveAPIException(HttpStatus.BAD_REQUEST, "Start and end dates must be the same for a half-day leave.");
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                 logger.warn("Invalid leave duration value: {}. Ignoring for day calculation.", leaveRequest.getLeaveDuration());
+            }
         }
 
         // Convert String type to LeaveType enum
@@ -141,7 +161,7 @@ public class LeaveServiceImpl implements LeaveService {
         return convertToDto(savedLeave);
     }
 
-    private void validateLeaveRequest(Employee employee, LeaveType leaveType, int numberOfDays, MultipartFile supportingDocument) {
+    private void validateLeaveRequest(Employee employee, LeaveType leaveType, Double numberOfDays, MultipartFile supportingDocument) {
         // Get leave type configuration
         LeaveTypeConfig leaveTypeConfig = leaveTypeConfigRepository.findByLeaveTypeAndIsActiveTrue(leaveType)
                 .orElseThrow(() -> new LeaveAPIException(
@@ -158,19 +178,30 @@ public class LeaveServiceImpl implements LeaveService {
                 .toList();
 
         // Calculate used leave days for the current year for this specific leave type
-        int usedLeaveDays = currentYearLeaves.stream()
-                .mapToInt(Leave::getNumberOfDays)
+        double usedLeaveDays = currentYearLeaves.stream()
+                .mapToDouble(Leave::getNumberOfDays)
                 .sum();
 
         // Check if the request exceeds the annual limit for this leave type
         if (usedLeaveDays + numberOfDays > leaveTypeConfig.getAnnualLimit()) {
             throw new LeaveAPIException(
                 HttpStatus.BAD_REQUEST,
-                String.format("Insufficient leave balance for %s. You have used %d days out of %d days allowed per year. %s",
+                String.format("Insufficient leave balance for %s. You have used %.1f days out of %d days allowed per year. %s",
                     leaveType,
                     usedLeaveDays,
                     leaveTypeConfig.getAnnualLimit(),
                     leaveTypeConfig.getDescription())
+            );
+        }
+
+        // Check if the request exceeds the maximum consecutive days limit from leave policy
+        int maxConsecutiveDays = leavePolicyService.getMaxConsecutiveDays(leaveType);
+        if (maxConsecutiveDays > 0 && numberOfDays > maxConsecutiveDays) {
+            throw new LeaveAPIException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Leave request exceeds the maximum consecutive days limit of %d days for %s.",
+                    maxConsecutiveDays,
+                    leaveType)
             );
         }
 
@@ -208,7 +239,6 @@ public class LeaveServiceImpl implements LeaveService {
              if (statusUpdate.getRejectionReason() == null || statusUpdate.getRejectionReason().isBlank()) {
                  throw new IllegalArgumentException("Rejection reason is required when rejecting a leave request.");
              }
-            leave.setReason(statusUpdate.getRejectionReason());
             leave.setRejectionReason(statusUpdate.getRejectionReason());
             
             emailSubject = "Leave Request Rejected";
@@ -343,13 +373,7 @@ public class LeaveServiceImpl implements LeaveService {
                     double usedDays = currentYearLeaves.stream()
                             .filter(leave -> leave.getStatus() == LeaveStatus.APPROVED 
                                     && leave.getLeaveType() == config.getLeaveType())
-                            .mapToDouble(leave -> {
-                                // Adjust for half-day leaves
-                                if (leave.getLeaveDuration() == LeaveDuration.HALF_DAY) {
-                                    return leave.getNumberOfDays() * 0.5;
-                                }
-                                return leave.getNumberOfDays();
-                            })
+                            .mapToDouble(Leave::getNumberOfDays)
                             .sum();
                     
                     // Calculate remaining days
@@ -359,13 +383,7 @@ public class LeaveServiceImpl implements LeaveService {
                     double pendingDays = currentYearLeaves.stream()
                             .filter(leave -> leave.getStatus() == LeaveStatus.PENDING 
                                     && leave.getLeaveType() == config.getLeaveType())
-                            .mapToDouble(leave -> {
-                                // Adjust for half-day leaves
-                                if (leave.getLeaveDuration() == LeaveDuration.HALF_DAY) {
-                                    return leave.getNumberOfDays() * 0.5;
-                                }
-                                return leave.getNumberOfDays();
-                            })
+                            .mapToDouble(Leave::getNumberOfDays)
                             .sum();
 
                     // Determine status text
@@ -426,6 +444,9 @@ public class LeaveServiceImpl implements LeaveService {
                 .type(leave.getLeaveType())
                 .employee(employeeDto)
                 .supportingDocumentPath(leave.getSupportingDocumentPath())
+                .numberOfDays(leave.getNumberOfDays())
+                .leaveDuration(leave.getLeaveDuration())
+                .holdDays(leave.getHoldDays())
                 .build();
     }
 

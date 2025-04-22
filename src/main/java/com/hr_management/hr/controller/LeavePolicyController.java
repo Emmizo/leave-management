@@ -42,7 +42,7 @@ public class LeavePolicyController {
         @ApiResponse(responseCode = "401", description = "User not authenticated"),
         @ApiResponse(responseCode = "403", description = "User not authorized")
     })
-    @PreAuthorize("hasRole('ADMIN') or hasRole('HR_MANAGER')")
+   
     public ResponseEntity<List<LeavePolicy>> getAllLeavePolicies() {
         return ResponseEntity.ok(leavePolicyService.getAllLeavePolicies());
     }

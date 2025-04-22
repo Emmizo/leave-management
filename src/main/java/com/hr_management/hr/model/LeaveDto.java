@@ -17,6 +17,7 @@ public class LeaveDto {
     private String supportingDocumentPath;
     private Double holdDays;
     private LeaveDuration leaveDuration;
+    private Double numberOfDays;
 
     // Default constructor
     public LeaveDto() {
@@ -25,7 +26,8 @@ public class LeaveDto {
     // All-args constructor
     public LeaveDto(Long id, LocalDate startDate, LocalDate endDate, String reason, 
                    LeaveStatus status, LeaveType type, EmployeeDto employee, 
-                   String supportingDocumentPath, Double holdDays, LeaveDuration leaveDuration) {
+                   String supportingDocumentPath, Double holdDays, LeaveDuration leaveDuration, 
+                   Double numberOfDays) {
         this.id = id;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -36,6 +38,7 @@ public class LeaveDto {
         this.supportingDocumentPath = supportingDocumentPath;
         this.holdDays = holdDays;
         this.leaveDuration = leaveDuration;
+        this.numberOfDays = numberOfDays;
     }
 
     // Builder pattern
@@ -54,6 +57,7 @@ public class LeaveDto {
         private String supportingDocumentPath;
         private Double holdDays;
         private LeaveDuration leaveDuration;
+        private Double numberOfDays;
 
         public Builder id(Long id) {
             this.id = id;
@@ -105,9 +109,15 @@ public class LeaveDto {
             return this;
         }
 
+        public Builder numberOfDays(Double numberOfDays) {
+            this.numberOfDays = numberOfDays;
+            return this;
+        }
+
         public LeaveDto build() {
             return new LeaveDto(id, startDate, endDate, reason, status, type, 
-                               employee, supportingDocumentPath, holdDays, leaveDuration);
+                               employee, supportingDocumentPath, holdDays, leaveDuration, 
+                               numberOfDays);
         }
     }
 
@@ -192,6 +202,14 @@ public class LeaveDto {
         this.leaveDuration = leaveDuration;
     }
 
+    public Double getNumberOfDays() {
+        return numberOfDays;
+    }
+
+    public void setNumberOfDays(Double numberOfDays) {
+        this.numberOfDays = numberOfDays;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -206,7 +224,8 @@ public class LeaveDto {
                 (employee != null ? employee.equals(leaveDto.employee) : leaveDto.employee == null) &&
                 (supportingDocumentPath != null ? supportingDocumentPath.equals(leaveDto.supportingDocumentPath) : leaveDto.supportingDocumentPath == null) &&
                 (holdDays != null ? holdDays.equals(leaveDto.holdDays) : leaveDto.holdDays == null) &&
-                leaveDuration == leaveDto.leaveDuration;
+                leaveDuration == leaveDto.leaveDuration &&
+                (numberOfDays != null ? numberOfDays.equals(leaveDto.numberOfDays) : leaveDto.numberOfDays == null);
     }
 
     @Override
@@ -221,6 +240,7 @@ public class LeaveDto {
         result = 31 * result + (supportingDocumentPath != null ? supportingDocumentPath.hashCode() : 0);
         result = 31 * result + (holdDays != null ? holdDays.hashCode() : 0);
         result = 31 * result + (leaveDuration != null ? leaveDuration.hashCode() : 0);
+        result = 31 * result + (numberOfDays != null ? numberOfDays.hashCode() : 0);
         return result;
     }
 
@@ -237,6 +257,7 @@ public class LeaveDto {
                 ", supportingDocumentPath='" + supportingDocumentPath + '\'' +
                 ", holdDays=" + holdDays +
                 ", leaveDuration=" + leaveDuration +
+                ", numberOfDays=" + numberOfDays +
                 '}';
     }
 } 

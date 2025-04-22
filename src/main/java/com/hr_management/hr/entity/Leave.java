@@ -35,7 +35,7 @@ public class Leave {
     private LocalDate endDate;
 
     @Column(nullable = false)
-    private Integer numberOfDays;
+    private Double numberOfDays;
 
     @Column(nullable = false)
     private Double holdDays = 0.0;
@@ -101,11 +101,11 @@ public class Leave {
         this.endDate = endDate;
     }
 
-    public Integer getNumberOfDays() {
+    public Double getNumberOfDays() {
         return numberOfDays;
     }
 
-    public void setNumberOfDays(Integer numberOfDays) {
+    public void setNumberOfDays(Double numberOfDays) {
         this.numberOfDays = numberOfDays;
     }
 

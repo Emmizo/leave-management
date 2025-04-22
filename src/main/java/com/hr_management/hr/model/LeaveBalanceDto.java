@@ -16,12 +16,12 @@ public class LeaveBalanceDto {
 
     // Inner class to hold leave date ranges
     public static class LeaveDateRange {
-        private LocalDate startDate;
-        private LocalDate endDate;
-        private int numberOfDays;
-        private boolean isHalfDay;
+        private final LocalDate startDate;
+        private final LocalDate endDate;
+        private final Double numberOfDays;
+        private final boolean isHalfDay;
 
-        public LeaveDateRange(LocalDate startDate, LocalDate endDate, int numberOfDays, boolean isHalfDay) {
+        public LeaveDateRange(LocalDate startDate, LocalDate endDate, Double numberOfDays, boolean isHalfDay) {
             this.startDate = startDate;
             this.endDate = endDate;
             this.numberOfDays = numberOfDays;
@@ -31,7 +31,7 @@ public class LeaveBalanceDto {
         // Getters
         public LocalDate getStartDate() { return startDate; }
         public LocalDate getEndDate() { return endDate; }
-        public int getNumberOfDays() { return numberOfDays; }
+        public Double getNumberOfDays() { return numberOfDays; }
         public boolean isHalfDay() { return isHalfDay; }
     }
 
