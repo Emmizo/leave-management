@@ -39,7 +39,7 @@ public class LeavePolicyServiceImpl implements LeavePolicyService {
         LeavePolicy existingPolicy = getLeavePolicyById(id);
         existingPolicy.setName(leavePolicy.getName());
         existingPolicy.setDescription(leavePolicy.getDescription());
-        existingPolicy.setDaysPerYear(leavePolicy.getDaysPerYear());
+        existingPolicy.setDaysPerMonth(leavePolicy.getDaysPerMonth());
         existingPolicy.setCarryForwardDays(leavePolicy.getCarryForwardDays());
         existingPolicy.setMaxConsecutiveDays(leavePolicy.getMaxConsecutiveDays());
         existingPolicy.setMinNoticeDays(leavePolicy.getMinNoticeDays());

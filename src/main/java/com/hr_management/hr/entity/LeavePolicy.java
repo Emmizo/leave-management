@@ -24,8 +24,8 @@ public class LeavePolicy {
     @Column(length = 500)
     private String description;
 
-    @Column(name = "days_per_year", nullable = false)
-    private Integer daysPerYear;
+    @Column(name = "days_per_month", nullable = false)
+    private Double daysPerMonth; // Auto-accrual rate (e.g., 1.66 days per month)
 
     @Column(name = "carry_forward_days")
     private Integer carryForwardDays;
@@ -53,14 +53,14 @@ public class LeavePolicy {
     }
 
     // All-args constructor
-    public LeavePolicy(Long id, String name, String description, Integer daysPerYear, 
+    public LeavePolicy(Long id, String name, String description, Double daysPerMonth, 
                       Integer carryForwardDays, Integer maxConsecutiveDays, 
                       Integer minNoticeDays, boolean requiresApproval, boolean active, 
                       LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.daysPerYear = daysPerYear;
+        this.daysPerMonth = daysPerMonth;
         this.carryForwardDays = carryForwardDays;
         this.maxConsecutiveDays = maxConsecutiveDays;
         this.minNoticeDays = minNoticeDays;
@@ -106,12 +106,12 @@ public class LeavePolicy {
         this.description = description;
     }
 
-    public Integer getDaysPerYear() {
-        return daysPerYear;
+    public Double getDaysPerMonth() {
+        return daysPerMonth;
     }
 
-    public void setDaysPerYear(Integer daysPerYear) {
-        this.daysPerYear = daysPerYear;
+    public void setDaysPerMonth(Double daysPerMonth) {
+        this.daysPerMonth = daysPerMonth;
     }
 
     public Integer getCarryForwardDays() {
@@ -189,7 +189,7 @@ public class LeavePolicy {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
-                ", daysPerYear=" + daysPerYear +
+                ", daysPerMonth=" + daysPerMonth +
                 ", carryForwardDays=" + carryForwardDays +
                 ", maxConsecutiveDays=" + maxConsecutiveDays +
                 ", minNoticeDays=" + minNoticeDays +

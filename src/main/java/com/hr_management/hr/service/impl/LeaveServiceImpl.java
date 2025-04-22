@@ -182,14 +182,60 @@ public class LeaveServiceImpl implements LeaveService {
                 .mapToDouble(Leave::getNumberOfDays)
                 .sum();
 
-        // Check if the request exceeds the annual limit for this leave type
-        if (usedLeaveDays + numberOfDays > leaveTypeConfig.getAnnualLimit()) {
+        // Calculate months worked in current year
+        LocalDate now = LocalDate.now();
+        int monthsWorked = now.getMonthValue(); // This gives us the current month (1-12)
+
+        // First check against leave policy if available
+        boolean hasActivePolicy = false;
+        double policyDaysAllowed = 0.0;
+        double policyRemainingDays = 0.0;
+
+        var activePolicy = leavePolicyService.getAllLeavePolicies().stream()
+                .filter(policy -> policy.isActive() && policy.getName().equalsIgnoreCase(leaveType.name()))
+                .findFirst();
+
+        if (activePolicy.isPresent()) {
+            hasActivePolicy = true;
+            policyDaysAllowed = activePolicy.get().getDaysPerMonth() * monthsWorked;
+            policyRemainingDays = Math.max(0, policyDaysAllowed - usedLeaveDays);
+        }
+
+        // Calculate default annual limit
+        double defaultDaysAllowed = leaveTypeConfig.getAnnualLimit() * (monthsWorked / 12.0);
+        double defaultRemainingDays = Math.max(0, defaultDaysAllowed - usedLeaveDays);
+
+        // Determine which limit to use and validate
+        double remainingDays;
+        double daysAllowed;
+        String limitType;
+
+        if (hasActivePolicy) {
+            // Use the stricter limit between policy and default
+            if (policyRemainingDays <= defaultRemainingDays) {
+                remainingDays = policyRemainingDays;
+                daysAllowed = policyDaysAllowed;
+                limitType = "policy";
+            } else {
+                remainingDays = defaultRemainingDays;
+                daysAllowed = defaultDaysAllowed;
+                limitType = "default annual";
+            }
+        } else {
+            remainingDays = defaultRemainingDays;
+            daysAllowed = defaultDaysAllowed;
+            limitType = "default annual";
+        }
+
+        // Check if the request exceeds the available balance
+        if (numberOfDays > remainingDays) {
             throw new LeaveAPIException(
                 HttpStatus.BAD_REQUEST,
-                String.format("Insufficient leave balance for %s. You have used %.1f days out of %d days allowed per year. %s",
+                String.format("Insufficient leave balance for %s. You have %.1f days available out of %.1f days allowed (%s limit). %s",
                     leaveType,
-                    usedLeaveDays,
-                    leaveTypeConfig.getAnnualLimit(),
+                    remainingDays,
+                    daysAllowed,
+                    limitType,
                     leaveTypeConfig.getDescription())
             );
         }
@@ -355,6 +401,10 @@ public class LeaveServiceImpl implements LeaveService {
                 .filter(leave -> leave.getStartDate().getYear() == currentYear)
                 .toList();
 
+        // Calculate months worked in current year
+        LocalDate now = LocalDate.now();
+        int monthsWorked = now.getMonthValue(); // This gives us the current month (1-12)
+
         return allConfigs.stream()
                 .filter(LeaveTypeConfig::getIsActive)
                 .map(config -> {
@@ -376,8 +426,15 @@ public class LeaveServiceImpl implements LeaveService {
                             .mapToDouble(Leave::getNumberOfDays)
                             .sum();
                     
+                    // Get leave policy for this type and calculate days allowed based on months worked
+                    double daysAllowed = leavePolicyService.getAllLeavePolicies().stream()
+                            .filter(policy -> policy.isActive() && policy.getName().equalsIgnoreCase(config.getLeaveType().name()))
+                            .findFirst()
+                            .map(policy -> policy.getDaysPerMonth() * monthsWorked)
+                            .orElse(config.getAnnualLimit() * (monthsWorked / 12.0)); // Fallback to annual limit prorated by months
+                    
                     // Calculate remaining days
-                    int remainingDays = Math.max(0, config.getAnnualLimit() - (int) Math.ceil(usedDays));
+                    int remainingDays = Math.max(0, (int) Math.ceil(daysAllowed - usedDays));
                     
                     // Get pending leaves for this type
                     double pendingDays = currentYearLeaves.stream()
@@ -410,7 +467,7 @@ public class LeaveServiceImpl implements LeaveService {
                             .leaveType(config.getLeaveType())
                             .name(formatLeaveName(config.getLeaveType()))
                             .daysAvailable(remainingDays)
-                            .daysAllowed(config.getAnnualLimit())
+                            .daysAllowed((int) Math.ceil(daysAllowed))
                             .status(status)
                             .colorCode(colorCode)
                             .leaveDates(leaveDateRanges)
