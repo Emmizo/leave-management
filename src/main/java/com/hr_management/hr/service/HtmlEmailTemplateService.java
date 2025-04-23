@@ -23,174 +23,117 @@ public class HtmlEmailTemplateService {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>%s</title>
                 <style>
                     body {
-                        font-family: 'Segoe UI', Arial, sans-serif;
+                        font-family: Arial, sans-serif;
                         line-height: 1.6;
-                        color: #333333;
                         margin: 0;
                         padding: 0;
-                        background-color: #f5f5f5;
+                        background-color: #f4f4f4;
                     }
                     .container {
-                        max-width: 650px;
+                        max-width: 600px;
                         margin: 20px auto;
-                        padding: 0;
-                        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+                        background-color: #ffffff;
                         border-radius: 8px;
                         overflow: hidden;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.1);
                     }
                     .header {
                         background-color: #184C55;
                         color: #ffffff;
-                        padding: 25px;
+                        padding: 20px;
                         text-align: center;
-                    }
-                    .logo {
-                        margin-bottom: 15px;
-                    }
-                    .logo img {
-                        height: 50px;
-                        width: auto;
                     }
                     .header h1 {
                         margin: 0;
                         font-size: 24px;
-                        font-weight: 600;
-                        letter-spacing: 0.5px;
                     }
                     .content {
-                        background-color: #ffffff;
-                        padding: 35px;
-                        border: 1px solid #e0e0e0;
+                        padding: 20px;
+                        color: #333333;
                     }
                     .footer {
+                        background-color: #184C55;
+                        color: #ffffff;
                         text-align: center;
-                        padding: 20px;
-                        color: #666666;
-                        font-size: 12px;
-                        background-color: #f9f9f9;
-                        border-top: 1px solid #e0e0e0;
+                        padding: 15px;
+                        font-size: 14px;
                     }
                     .button {
                         display: inline-block;
-                        padding: 12px 30px;
                         background-color: #184C55;
                         color: #ffffff;
+                        padding: 12px 24px;
                         text-decoration: none;
                         border-radius: 4px;
-                        margin: 25px 0;
-                        font-weight: 500;
-                        transition: background-color 0.3s ease;
-                        text-align: center;
-                    }
-                    .button:hover {
-                        background-color: #0d2c33;
+                        margin: 20px 0;
                     }
                     .info-box {
                         background-color: #f8f9fa;
-                        border-left: 4px solid #184C55;
-                        padding: 25px;
-                        margin: 25px 0;
+                        border: 1px solid #e9ecef;
                         border-radius: 4px;
+                        padding: 15px;
+                        margin: 15px 0;
                     }
                     .info-box h3 {
                         color: #184C55;
                         margin-top: 0;
-                        margin-bottom: 20px;
+                        margin-bottom: 15px;
                         font-size: 18px;
-                    }
-                    .status-approved {
-                        color: #2E7D32;
-                        font-weight: 600;
-                        padding: 4px 8px;
-                        background-color: #e8f5e9;
-                        border-radius: 4px;
-                    }
-                    .status-rejected {
-                        color: #C62828;
-                        font-weight: 600;
-                        padding: 4px 8px;
-                        background-color: #ffebee;
-                        border-radius: 4px;
-                    }
-                    .status-pending {
-                        color: #F57C00;
-                        font-weight: 600;
-                        padding: 4px 8px;
-                        background-color: #FFF3E0;
-                        border-radius: 4px;
                     }
                     .details-row {
                         display: flex;
-                        margin-bottom: 12px;
+                        margin-bottom: 8px;
+                        font-size: 14px;
                     }
                     .details-label {
-                        font-weight: 600;
+                        font-weight: bold;
+                        width: 120px;
                         color: #184C55;
-                        min-width: 140px;
                     }
                     .details-value {
-                        color: #333333;
+                        flex: 1;
                     }
-                    .signature {
-                        margin-top: 30px;
-                        padding-top: 20px;
-                        border-top: 1px solid #eaeaea;
+                    .status-pending {
+                        color: #ffa500;
+                        font-weight: bold;
                     }
-                    .social-icons {
-                        margin-top: 15px;
+                    .status-approved {
+                        color: #28a745;
+                        font-weight: bold;
                     }
-                    .social-icons a {
-                        display: inline-block;
-                        margin: 0 5px;
-                        color: #184C55;
+                    .status-rejected {
+                        color: #dc3545;
+                        font-weight: bold;
                     }
-                    @media (max-width: 600px) {
-                        .container {
-                            margin: 10px;
-                        }
-                        .content {
-                            padding: 20px;
-                        }
-                        .details-row {
-                            flex-direction: column;
-                        }
-                        .details-label {
-                            margin-bottom: 5px;
-                        }
+                    ol, ul {
+                        margin: 10px 0;
+                        padding-left: 20px;
+                    }
+                    li {
+                        margin-bottom: 8px;
                     }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="header">
-                        <div class="logo">
-                            <!-- Company Logo -->
-                            <img src="https://via.placeholder.com/150x50/184C55/FFFFFF?text=HR+SYSTEM" alt="Company Logo">
-                        </div>
                         <h1>%s</h1>
                     </div>
                     <div class="content">
                         %s
-                        <div class="signature">
-                            <p>Best regards,<br><strong>HR Management System</strong></p>
-                            <div class="social-icons">
-                                <a href="#">LinkedIn</a> | 
-                                <a href="#">Twitter</a> | 
-                                <a href="#">Website</a>
-                            </div>
-                        </div>
                     </div>
                     <div class="footer">
-                        <p>&copy; 2024 Your Company. All Rights Reserved.</p>
-                        <p>This is an automated message. Please do not reply to this email.</p>
+                        <p>© 2024 HR Management System. All rights reserved.</p>
                     </div>
                 </div>
             </body>
             </html>
-            """, title, title, content);
+            """,
+            title,
+            content
+        );
     }
 
     public void sendWelcomeEmail(User user, Employee employee, String plainPassword) {
@@ -234,7 +177,7 @@ public class HtmlEmailTemplateService {
             
             <p>For security reasons, please change your password upon first login.</p>
             
-            <a href="http://localhost:5456" class="button">Log In to Your Account</a>
+            
             
             <p>If you have any questions or need assistance, please contact the HR department.</p>
             """,
@@ -251,281 +194,182 @@ public class HtmlEmailTemplateService {
         }
     }
 
-    public void sendLeaveRequestNotification(Leave leave, Employee employee) {
-        // Email to employee
-        String empTitle = "Leave Request Submitted";
-        String empContent = String.format("""
-            <p style="font-size: 16px;">Dear <strong>%s</strong>,</p>
-            
-            <p>Your leave request has been submitted and is <span class="status-pending">pending approval</span>.</p>
-            
-            <div class="info-box">
-                <h3>Leave Request Details</h3>
-                <div class="details-row">
-                    <span class="details-label">Type:</span>
-                    <span class="details-value">%s</span>
+    public void sendLeaveRequestNotification(Leave leave, String recipientEmail, boolean isHrAdmin) {
+        String title = "Leave Request Notification";
+        String content;
+        
+        if (isHrAdmin) {
+            content = String.format("""
+                <div class="info-box">
+                    <h3>New Leave Request Details</h3>
+                    <div class="details-row">
+                        <span class="details-label">Employee:</span>
+                        <span class="details-value">%s %s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Leave Type:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Start Date:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">End Date:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Status:</span>
+                        <span class="details-value status-pending">Pending</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Reason:</span>
+                        <span class="details-value">%s</span>
+                    </div>
                 </div>
-                <div class="details-row">
-                    <span class="details-label">Start Date:</span>
-                    <span class="details-value">%s</span>
+                <p>Please review this leave request and take appropriate action:</p>
+                <ol>
+                    <li>Log in to the HR Management System</li>
+                    <li>Navigate to the Leave Requests section</li>
+                    <li>Review the request details and supporting documents (if any)</li>
+                    <li>Approve or reject the request based on company policy</li>
+                </ol>
+                <a href="%s" class="button">View Leave Request</a>
+                """,
+                leave.getEmployee().getFirstName(),
+                leave.getEmployee().getLastName(),
+                leave.getLeaveType(),
+                leave.getStartDate(),
+                leave.getEndDate(),
+                leave.getReason(),
+                "http://localhost:8080/leave-requests" // Replace with actual URL
+            );
+        } else {
+            content = String.format("""
+                <div class="info-box">
+                    <h3>Your Leave Request Has Been Submitted</h3>
+                    <div class="details-row">
+                        <span class="details-label">Leave Type:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Start Date:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">End Date:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Status:</span>
+                        <span class="details-value status-pending">Pending</span>
+                    </div>
                 </div>
-                <div class="details-row">
-                    <span class="details-label">End Date:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Duration:</span>
-                    <span class="details-value">%.1f days</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Reason:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Hold Days:</span>
-                    <span class="details-value">%.1f</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Leave Type:</span>
-                    <span class="details-value">%s</span>
-                </div>
-            </div>
-            
-            <p>You will receive a notification once your request has been reviewed by the HR department.</p>
-            
-            <p>If you have any questions regarding your leave request, please contact the HR department.</p>
-            """,
-            employee.getFirstName(),
-            leave.getLeaveType(),
-            leave.getStartDate(),
-            leave.getEndDate(),
-            leave.getNumberOfDays(),
-            leave.getReason(),
-            leave.getHoldDays(),
-            leave.getLeaveDuration()
-        );
-
-        if (employee.getEmail() != null) {
-            emailService.sendHtmlMessage(employee.getEmail(), empTitle, getEmailTemplate(empTitle, empContent));
+                <p>Your leave request has been successfully submitted and is pending approval. Here's what happens next:</p>
+                <ul>
+                    <li>HR will review your request within 1-2 business days</li>
+                    <li>You will receive an email notification once your request is approved or rejected</li>
+                    <li>You can track the status of your request in the HR Management System</li>
+                </ul>
+                <a href="%s" class="button">View Request Status</a>
+                """,
+                leave.getLeaveType(),
+                leave.getStartDate(),
+                leave.getEndDate(),
+                "http://localhost:8080/my-leaves" // Replace with actual URL
+            );
         }
-
-        // Email to HR/Admin
-        String adminTitle = "New Leave Request Submitted";
-        String adminContent = String.format("""
-            <p style="font-size: 16px;">A new leave request requires your attention.</p>
-            
-            <div class="info-box">
-                <h3>Employee Information</h3>
-                <div class="details-row">
-                    <span class="details-label">Name:</span>
-                    <span class="details-value">%s %s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Employee ID:</span>
-                    <span class="details-value">%d</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Department:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Position:</span>
-                    <span class="details-value">%s</span>
-                </div>
-            </div>
-            
-            <div class="info-box">
-                <h3>Leave Request Details</h3>
-                <div class="details-row">
-                    <span class="details-label">Type:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Start Date:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">End Date:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Duration:</span>
-                    <span class="details-value">%.1f days</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Reason:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Hold Days:</span>
-                    <span class="details-value">%.1f</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Leave Type:</span>
-                    <span class="details-value">%s</span>
-                </div>
-            </div>
-            
-            <p>Please review this request in the HR Management System.</p>
-            
-            <a href="#" class="button">Review Request</a>
-            """,
-            employee.getFirstName(),
-            employee.getLastName(),
-            employee.getId(),
-            employee.getDepartment(),
-            employee.getPosition(),
-            leave.getLeaveType(),
-            leave.getStartDate(),
-            leave.getEndDate(),
-            leave.getNumberOfDays(),
-            leave.getReason(),
-            leave.getHoldDays(),
-            leave.getLeaveDuration()
-        );
-
-        // Send admin notification
-        emailService.sendHtmlMessage("hr@company.com", adminTitle, getEmailTemplate(adminTitle, adminContent));
+        
+        String emailContent = getEmailTemplate(title, content);
+        emailService.sendHtmlMessage(recipientEmail, title, emailContent);
     }
 
-    public void sendLeaveStatusUpdateNotification(Leave leave, Employee employee, LeaveStatus newStatus, String rejectionReason) {
-        String title = newStatus == LeaveStatus.APPROVED ? 
-            "Leave Request Approved" : "Leave Request Rejected";
+    public void sendLeaveStatusUpdateNotification(Leave leave, String recipientEmail, boolean isHrAdmin) {
+        String title = "Leave Request Status Update";
+        String statusClass = leave.getStatus() == LeaveStatus.APPROVED ? "status-approved" : "status-rejected";
+        String content;
         
-        String statusClass = newStatus == LeaveStatus.APPROVED ? "status-approved" : "status-rejected";
-        String statusText = newStatus == LeaveStatus.APPROVED ? "approved" : "rejected";
-        
-        String content = String.format("""
-            <p style="font-size: 16px;">Dear <strong>%s</strong>,</p>
-            
-            <p>Your leave request has been <span class="%s">%s</span>.</p>
-            
-            <div class="info-box">
-                <h3>Leave Request Details</h3>
-                <div class="details-row">
-                    <span class="details-label">Type:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Start Date:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">End Date:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Duration:</span>
-                    <span class="details-value">%.1f days</span>
-                </div>
-                %s
-            </div>
-            
-            %s
-            """,
-            employee.getFirstName(),
-            statusClass,
-            statusText,
-            leave.getLeaveType(),
-            leave.getStartDate(),
-            leave.getEndDate(),
-            leave.getNumberOfDays(),
-            newStatus == LeaveStatus.REJECTED ? 
-                String.format("""
+        if (isHrAdmin) {
+            content = String.format("""
+                <div class="info-box">
+                    <h3>Leave Request Status Updated</h3>
                     <div class="details-row">
-                        <span class="details-label">Rejection Reason:</span>
+                        <span class="details-label">Employee:</span>
+                        <span class="details-value">%s %s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Leave Type:</span>
                         <span class="details-value">%s</span>
                     </div>
-                    """, rejectionReason) : "",
-            newStatus == LeaveStatus.APPROVED ? 
-                """
-                <p>Your time off has been recorded in the HR system. If you need to cancel or modify this leave request, 
-                please contact the HR department as soon as possible.</p>
-                """ : 
-                """
-                <p>If you have questions about the rejection or would like to submit a modified request, 
-                please contact the HR department.</p>
-                """
-        );
-
-        if (employee.getEmail() != null) {
-            emailService.sendHtmlMessage(employee.getEmail(), title, getEmailTemplate(title, content));
+                    <div class="details-row">
+                        <span class="details-label">Status:</span>
+                        <span class="details-value %s">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Comments:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                </div>
+                <p>The leave request has been %s. The employee has been notified of this update.</p>
+                <a href="%s" class="button">View Leave Request</a>
+                """,
+                leave.getEmployee().getFirstName(),
+                leave.getEmployee().getLastName(),
+                leave.getLeaveType(),
+                statusClass,
+                leave.getStatus(),
+                leave.getRejectionReason(),
+                leave.getStatus().toString().toLowerCase(),
+                "http://localhost:8080/leave-requests" // Replace with actual URL
+            );
+        } else {
+            content = String.format("""
+                <div class="info-box">
+                    <h3>Your Leave Request Has Been %s</h3>
+                    <div class="details-row">
+                        <span class="details-label">Leave Type:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Start Date:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">End Date:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Status:</span>
+                        <span class="details-value %s">%s</span>
+                    </div>
+                    %s
+                </div>
+                %s
+                <a href="%s" class="button">View Leave Details</a>
+                """,
+                leave.getStatus(),
+                leave.getLeaveType(),
+                leave.getStartDate(),
+                leave.getEndDate(),
+                statusClass,
+                leave.getStatus(),
+                leave.getRejectionReason() != null && !leave.getRejectionReason().isEmpty() 
+                    ? String.format("""
+                        <div class="details-row">
+                            <span class="details-label">Comments:</span>
+                            <span class="details-value">%s</span>
+                        </div>
+                        """, leave.getRejectionReason()) 
+                    : "",
+                leave.getStatus() == LeaveStatus.APPROVED 
+                    ? "<p>Your leave request has been approved. Please ensure you:</p><ul><li>Update your team about your absence</li><li>Set up an out-of-office message</li><li>Complete any necessary handover documentation</li></ul>"
+                    : "<p>Your leave request has been rejected. If you have any questions about this decision, please contact your supervisor or HR department.</p>",
+                "http://localhost:8080/my-leaves" // Replace with actual URL
+            );
         }
-
-        // Send notification to HR/Admin about the status update
-        String adminTitle = "Leave Request Status Updated";
-        String adminContent = String.format("""
-            <p style="font-size: 16px;">A leave request status has been updated to <span class="%s">%s</span>.</p>
-            
-            <div class="info-box">
-                <h3>Employee Information</h3>
-                <div class="details-row">
-                    <span class="details-label">Name:</span>
-                    <span class="details-value">%s %s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Employee ID:</span>
-                    <span class="details-value">%d</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Department:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Position:</span>
-                    <span class="details-value">%s</span>
-                </div>
-            </div>
-            
-            <div class="info-box">
-                <h3>Leave Request Details</h3>
-                <div class="details-row">
-                    <span class="details-label">Type:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Start Date:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">End Date:</span>
-                    <span class="details-value">%s</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Duration:</span>
-                    <span class="details-value">%.1f days</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Status:</span>
-                    <span class="%s">%s</span>
-                </div>
-                %s
-            </div>
-            """,
-            statusClass,
-            statusText,
-            employee.getFirstName(),
-            employee.getLastName(),
-            employee.getId(),
-            employee.getDepartment(),
-            employee.getPosition(),
-            leave.getLeaveType(),
-            leave.getStartDate(),
-            leave.getEndDate(),
-            leave.getNumberOfDays(),
-            statusClass,
-            newStatus,
-            newStatus == LeaveStatus.REJECTED ? 
-                String.format("""
-                    <div class="details-row">
-                        <span class="details-label">Rejection Reason:</span>
-                        <span class="details-value">%s</span>
-                    </div>
-                    """, rejectionReason) : ""
-        );
-
-        // Send admin notification
-        emailService.sendHtmlMessage("hr@company.com", adminTitle, getEmailTemplate(adminTitle, adminContent));
+        
+        String emailContent = getEmailTemplate(title, content);
+        emailService.sendHtmlMessage(recipientEmail, title, emailContent);
     }
 
     public void sendPasswordResetEmail(User user, String resetToken) {
