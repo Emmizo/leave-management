@@ -1,88 +1,29 @@
 package com.hr_management.hr.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 public class ProfileUpdateDto {
-    @Schema(description = "User's first name")
+    @NotBlank(message = "First name is required")
     private String firstName;
 
-    @Schema(description = "User's last name")
+    @NotBlank(message = "Last name is required")
     private String lastName;
 
-    @Schema(description = "User's email address")
+    @NotBlank(message = "Username is required")
+    private String username;
+
+    @Email(message = "Email should be valid")
+    @NotBlank(message = "Email is required")
     private String email;
 
-    @Schema(description = "User's department")
+    @NotBlank(message = "Department is required")
     private String department;
 
-    @Schema(description = "User's position")
+    @NotBlank(message = "Position is required")
     private String position;
 
-    @Schema(description = "User's profile picture URL")
-    private String profilePicture;
-
-    // Default constructor
-    public ProfileUpdateDto() {
-    }
-
-    // All-args constructor
-    public ProfileUpdateDto(String firstName, String lastName, String email, 
-                          String department, String position, String profilePicture) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.department = department;
-        this.position = position;
-        this.profilePicture = profilePicture;
-    }
-
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static class Builder {
-        private String firstName;
-        private String lastName;
-        private String email;
-        private String department;
-        private String position;
-        private String profilePicture;
-
-        public Builder firstName(String firstName) {
-            this.firstName = firstName;
-            return this;
-        }
-
-        public Builder lastName(String lastName) {
-            this.lastName = lastName;
-            return this;
-        }
-
-        public Builder email(String email) {
-            this.email = email;
-            return this;
-        }
-
-        public Builder department(String department) {
-            this.department = department;
-            return this;
-        }
-
-        public Builder position(String position) {
-            this.position = position;
-            return this;
-        }
-
-        public Builder profilePicture(String profilePicture) {
-            this.profilePicture = profilePicture;
-            return this;
-        }
-
-        public ProfileUpdateDto build() {
-            return new ProfileUpdateDto(firstName, lastName, email, department, position, profilePicture);
-        }
-    }
+    private String phone;
 
     // Getters and Setters
     public String getFirstName() {
@@ -99,6 +40,14 @@ public class ProfileUpdateDto {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getEmail() {
@@ -125,11 +74,11 @@ public class ProfileUpdateDto {
         this.position = position;
     }
 
-    public String getProfilePicture() {
-        return profilePicture;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setProfilePicture(String profilePicture) {
-        this.profilePicture = profilePicture;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 } 

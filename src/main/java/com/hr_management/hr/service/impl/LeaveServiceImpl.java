@@ -418,24 +418,122 @@ public class LeaveServiceImpl implements LeaveService {
                     double usedDays = currentYearLeaves.stream()
                             .filter(leave -> leave.getStatus() == LeaveStatus.APPROVED 
                                     && leave.getLeaveType() == config.getLeaveType())
-                            .mapToDouble(Leave::getNumberOfDays)
+                            .mapToDouble(leave -> {
+                                // If it's a half-day leave, count as 0.5 days
+                                if (leave.getLeaveDuration() == LeaveDuration.HALF_DAY) {
+                                    return 0.5;
+                                }
+                                return leave.getNumberOfDays();
+                            })
                             .sum();
                     
                     // Get leave policy for this type and calculate days allowed based on months worked
-                    double daysAllowed = leavePolicyService.getAllLeavePolicies().stream()
-                            .filter(policy -> policy.isActive() && policy.getName().equalsIgnoreCase(config.getLeaveType().name()))
-                            .findFirst()
-                            .map(policy -> policy.getDaysPerMonth() * monthsWorked)
-                            .orElse(config.getAnnualLimit() * (monthsWorked / 12.0)); // Fallback to annual limit prorated by months
+                    double daysAllowed;
+                    int maxCarryForwardDays = 5; // Default maximum carry-forward days
                     
-                    // Calculate remaining days
-                    int remainingDays = Math.max(0, (int) Math.ceil(daysAllowed - usedDays));
+                    if (config.getLeaveType() == LeaveType.MATERNITY) {
+                        // For maternity leave, start with fixed 90 days per year
+                        daysAllowed = 90.0;
+                        
+                        // Check if there's an active policy that overrides this
+                        var activePolicy = leavePolicyService.getAllLeavePolicies().stream()
+                                .filter(policy -> policy.isActive() && policy.getName().equalsIgnoreCase("MATERNITY"))
+                                .findFirst();
+                                
+                        if (activePolicy.isPresent()) {
+                            // If policy exists, use its daysPerMonth * 12 for annual limit
+                            daysAllowed = activePolicy.get().getDaysPerMonth() * 12;
+                            // Use policy's carry-forward limit if specified
+                            if (activePolicy.get().getCarryForwardDays() != null) {
+                                maxCarryForwardDays = activePolicy.get().getCarryForwardDays();
+                            }
+                        }
+                    } else {
+                        // For other leave types, use the normal calculation
+                        var activePolicy = leavePolicyService.getAllLeavePolicies().stream()
+                                .filter(policy -> policy.isActive() && policy.getName().equalsIgnoreCase(config.getLeaveType().name()))
+                                .findFirst();
+                                
+                        if (activePolicy.isPresent()) {
+                            daysAllowed = activePolicy.get().getDaysPerMonth() * monthsWorked;
+                            // Use policy's carry-forward limit if specified
+                            if (activePolicy.get().getCarryForwardDays() != null) {
+                                maxCarryForwardDays = activePolicy.get().getCarryForwardDays();
+                            }
+                        } else {
+                            daysAllowed = config.getAnnualLimit() * (monthsWorked / 12.0);
+                        }
+                    }
+                    
+                    // Calculate remaining days for current year
+                    double remainingDays = Math.max(0, daysAllowed - usedDays);
+                    
+                    // Calculate carry-forward days from previous year (only for PTO)
+                    double carryForwardDays = 0.0;
+                    if (config.getLeaveType() == LeaveType.PTO) { // Only for PTO
+                        // Get the active PTO policy to check exclusion year
+                        var activePolicy = leavePolicyService.getAllLeavePolicies().stream()
+                                .filter(policy -> policy.isActive() && policy.getName().equalsIgnoreCase("PTO"))
+                                .findFirst();
+                                
+                        // Only proceed if there's an active policy and current year is after exclusion year
+                        if (activePolicy.isPresent()) {
+                            Integer exclusionYear = activePolicy.get().getExclusionYear();
+                            if (exclusionYear != null && currentYear > exclusionYear) {
+                                // Get previous year's PTO leaves for this employee
+                                List<Leave> previousYearLeaves = allLeaves.stream()
+                                        .filter(leave -> leave.getStartDate().getYear() == currentYear - 1 
+                                                && leave.getLeaveType() == LeaveType.PTO
+                                                && leave.getStatus() == LeaveStatus.APPROVED)
+                                        .toList();
+                                        
+                                // Calculate used PTO days in previous year by checking each leave
+                                double previousYearUsedDays = 0.0;
+                                for (Leave leave : previousYearLeaves) {
+                                    if (leave.getLeaveDuration() == LeaveDuration.HALF_DAY) {
+                                        previousYearUsedDays += 0.5;
+                                    } else {
+                                        previousYearUsedDays += leave.getNumberOfDays();
+                                    }
+                                }
+                                        
+                                // Get previous year's allowed PTO days
+                                double previousYearDaysAllowed = config.getAnnualLimit();
+                                
+                                // Calculate remaining PTO days from previous year
+                                double previousYearRemainingDays = Math.max(0, previousYearDaysAllowed - previousYearUsedDays);
+                                
+                                // Only carry forward if there are remaining PTO days from previous year
+                                if (previousYearRemainingDays > 0) {
+                                    // Apply carry-forward limit from policy or default to 5 days
+                                    Integer maxCarryForward = activePolicy.get().getCarryForwardDays();
+                                    int maxCarryForwardLimit = maxCarryForward != null ? maxCarryForward : 5;
+                                    carryForwardDays = Math.min(previousYearRemainingDays, maxCarryForwardLimit);
+                                    
+                                    // Add carry-forward days to current year's allowed PTO days
+                                    daysAllowed += carryForwardDays;
+                                    // Also add to remaining days since they're part of current year's PTO allowance
+                                    remainingDays += carryForwardDays;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Round to one decimal place
+                    remainingDays = Math.round(remainingDays * 10.0) / 10.0;
+                    daysAllowed = Math.round(daysAllowed * 10.0) / 10.0;
+                    carryForwardDays = Math.round(carryForwardDays * 10.0) / 10.0;
                     
                     // Get pending leaves for this type
                     double pendingDays = currentYearLeaves.stream()
                             .filter(leave -> leave.getStatus() == LeaveStatus.PENDING 
                                     && leave.getLeaveType() == config.getLeaveType())
-                            .mapToDouble(Leave::getNumberOfDays)
+                            .mapToDouble(leave -> {
+                                if (leave.getLeaveDuration() == LeaveDuration.HALF_DAY) {
+                                    return 0.5;
+                                }
+                                return leave.getNumberOfDays();
+                            })
                             .sum();
 
                     // Determine status text
@@ -444,6 +542,11 @@ public class LeaveServiceImpl implements LeaveService {
                         status = String.format("Available (%d days pending approval)", (int) Math.ceil(pendingDays));
                     } else {
                         status = "Available";
+                    }
+                    
+                    // Add carry-forward information to status if applicable
+                    if (carryForwardDays > 0) {
+                        status += String.format(" (%.1f days carried forward)", carryForwardDays);
                     }
 
                     // Determine color code based on leave type
@@ -462,7 +565,9 @@ public class LeaveServiceImpl implements LeaveService {
                             .leaveType(config.getLeaveType())
                             .name(formatLeaveName(config.getLeaveType()))
                             .daysAvailable(remainingDays)
-                            .daysAllowed((int) Math.ceil(daysAllowed))
+                            .daysAllowed(daysAllowed)
+                            .carryForwardDays(carryForwardDays)
+                            .maxCarryForwardDays(maxCarryForwardDays)
                             .status(status)
                             .colorCode(colorCode)
                             .leaveDates(leaveDateRanges)
@@ -519,9 +624,11 @@ public class LeaveServiceImpl implements LeaveService {
                 .department(employee.getDepartment())
                 .position(employee.getPosition())
                 .email(employee.getEmail())
+                .phone(employee.getPhone())
                 .annualLeaveBalance(employee.getAnnualLeaveBalance())
                 .microsoftId(employee.getMicrosoftId())
                 .user(userDto)
+                .createdAt(employee.getCreatedAt())
                 .build();
     }
 }

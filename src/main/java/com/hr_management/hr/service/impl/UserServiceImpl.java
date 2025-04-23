@@ -89,19 +89,23 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         Employee employee = employeeRepository.findByUser(user)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "user", userId));
 
-        // Update User entity
+        // Update User entity fields
+        if (profileUpdateDto.getUsername() != null && !profileUpdateDto.getUsername().equals(user.getUsername())) {
+            if (existsByUsername(profileUpdateDto.getUsername())) {
+                throw new RuntimeException("Username already exists");
+            }
+            user.setUsername(profileUpdateDto.getUsername());
+        }
+
         if (profileUpdateDto.getEmail() != null && !profileUpdateDto.getEmail().equals(user.getEmail())) {
             if (existsByEmail(profileUpdateDto.getEmail())) {
                 throw new RuntimeException("Email already exists");
             }
             user.setEmail(profileUpdateDto.getEmail());
-        }
-        
-        if (profileUpdateDto.getProfilePicture() != null) {
-            user.setProfilePicture(profileUpdateDto.getProfilePicture());
+            employee.setEmail(profileUpdateDto.getEmail());
         }
 
-        // Update Employee entity
+        // Update Employee entity fields
         if (profileUpdateDto.getFirstName() != null) {
             employee.setFirstName(profileUpdateDto.getFirstName());
         }
@@ -113,6 +117,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         }
         if (profileUpdateDto.getPosition() != null) {
             employee.setPosition(profileUpdateDto.getPosition());
+        }
+        if (profileUpdateDto.getPhone() != null) {
+            employee.setPhone(profileUpdateDto.getPhone());
         }
 
         // Save both entities

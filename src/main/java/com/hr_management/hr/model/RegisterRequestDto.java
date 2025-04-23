@@ -25,10 +25,12 @@ public class RegisterRequestDto {
     @NotBlank(message = "Department cannot be blank")
     private String department;
 
-    @NotBlank(message = "Position cannot be blank")
+    @NotBlank(message = "Position is required")
     private String position;
 
-    @NotBlank(message = "Role cannot be blank")
+    private String phone;
+
+    @NotBlank(message = "Role is required")
     private String role;
 
     // Default constructor
@@ -111,6 +113,14 @@ public class RegisterRequestDto {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     @Override

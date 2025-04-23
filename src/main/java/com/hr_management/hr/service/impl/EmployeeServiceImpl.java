@@ -93,10 +93,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .department(employee.getDepartment())
                 .position(employee.getPosition())
                 .email(employee.getEmail())
+                .phone(employee.getPhone())
                 .annualLeaveBalance(employee.getAnnualLeaveBalance())
                 .microsoftId(employee.getMicrosoftId())
                 .user(userDto)
                 .leaves(leaveDtos)
+                .createdAt(employee.getCreatedAt())
                 .build();
     }
 

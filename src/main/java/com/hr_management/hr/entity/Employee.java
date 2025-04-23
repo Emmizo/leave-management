@@ -1,6 +1,9 @@
 package com.hr_management.hr.entity;
 
+import java.time.LocalDateTime;
 import java.util.List;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -39,6 +42,9 @@ public class Employee {
     @Column(nullable = false)
     private String position;
 
+    @Column(nullable = true)
+    private String phone;
+
     @Column(nullable = false)
     private Integer annualLeaveBalance = 20; // Default annual leave balance
 
@@ -48,14 +54,21 @@ public class Employee {
     @Column(nullable = false)
     private String microsoftId; // For Microsoft Authentication
 
+    @Column(name = "profile_picture_path")
+    private String profilePicturePath;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     // Default constructor
     public Employee() {
     }
 
     // All-args constructor
     public Employee(Long id, String email, User user, String firstName, String lastName, 
-                   String department, String position, Integer annualLeaveBalance, 
-                   List<Leave> leaves, String microsoftId) {
+                   String department, String position, String phone, Integer annualLeaveBalance, 
+                   List<Leave> leaves, String microsoftId, String profilePicturePath, LocalDateTime createdAt) {
         this.id = id;
         this.email = email;
         this.user = user;
@@ -63,9 +76,12 @@ public class Employee {
         this.lastName = lastName;
         this.department = department;
         this.position = position;
+        this.phone = phone;
         this.annualLeaveBalance = annualLeaveBalance;
         this.leaves = leaves;
         this.microsoftId = microsoftId;
+        this.profilePicturePath = profilePicturePath;
+        this.createdAt = createdAt;
     }
 
     // Builder pattern
@@ -81,9 +97,12 @@ public class Employee {
         private String lastName;
         private String department;
         private String position;
+        private String phone;
         private Integer annualLeaveBalance = 20;
         private List<Leave> leaves;
         private String microsoftId;
+        private String profilePicturePath;
+        private LocalDateTime createdAt;
 
         public Builder id(Long id) {
             this.id = id;
@@ -120,6 +139,11 @@ public class Employee {
             return this;
         }
 
+        public Builder phone(String phone) {
+            this.phone = phone;
+            return this;
+        }
+
         public Builder annualLeaveBalance(Integer annualLeaveBalance) {
             this.annualLeaveBalance = annualLeaveBalance;
             return this;
@@ -135,9 +159,19 @@ public class Employee {
             return this;
         }
 
+        public Builder profilePicturePath(String profilePicturePath) {
+            this.profilePicturePath = profilePicturePath;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
         public Employee build() {
             return new Employee(id, email, user, firstName, lastName, department, 
-                               position, annualLeaveBalance, leaves, microsoftId);
+                               position, phone, annualLeaveBalance, leaves, microsoftId, profilePicturePath, createdAt);
         }
     }
 
@@ -222,6 +256,30 @@ public class Employee {
         this.microsoftId = microsoftId;
     }
 
+    public String getProfilePicturePath() {
+        return profilePicturePath;
+    }
+
+    public void setProfilePicturePath(String profilePicturePath) {
+        this.profilePicturePath = profilePicturePath;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -246,6 +304,8 @@ public class Employee {
                 ", position='" + position + '\'' +
                 ", annualLeaveBalance=" + annualLeaveBalance +
                 ", microsoftId='" + microsoftId + '\'' +
+                ", profilePicturePath='" + profilePicturePath + '\'' +
+                ", createdAt=" + createdAt +
                 '}';
     }
 }

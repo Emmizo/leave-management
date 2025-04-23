@@ -7,6 +7,7 @@ public class UserDto {
     private String role;
     private String provider;
     private String providerId;
+    private boolean enabled = true;
 
     // Default constructor
     public UserDto() {
@@ -14,13 +15,14 @@ public class UserDto {
 
     // All-args constructor
     public UserDto(Long id, String username, String email, String role, 
-                  String provider, String providerId) {
+                  String provider, String providerId, boolean enabled) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.role = role;
         this.provider = provider;
         this.providerId = providerId;
+        this.enabled = enabled;
     }
 
     // Builder pattern
@@ -35,6 +37,7 @@ public class UserDto {
         private String role;
         private String provider;
         private String providerId;
+        private boolean enabled = true;
 
         public Builder id(Long id) {
             this.id = id;
@@ -66,8 +69,13 @@ public class UserDto {
             return this;
         }
 
+        public Builder enabled(boolean enabled) {
+            this.enabled = enabled;
+            return this;
+        }
+
         public UserDto build() {
-            return new UserDto(id, username, email, role, provider, providerId);
+            return new UserDto(id, username, email, role, provider, providerId, enabled);
         }
     }
 
@@ -120,12 +128,21 @@ public class UserDto {
         this.providerId = providerId;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UserDto userDto = (UserDto) o;
-        return (id != null ? id.equals(userDto.id) : userDto.id == null) &&
+        return enabled == userDto.enabled &&
+                (id != null ? id.equals(userDto.id) : userDto.id == null) &&
                 (username != null ? username.equals(userDto.username) : userDto.username == null) &&
                 (email != null ? email.equals(userDto.email) : userDto.email == null) &&
                 (role != null ? role.equals(userDto.role) : userDto.role == null) &&
@@ -141,6 +158,7 @@ public class UserDto {
         result = 31 * result + (role != null ? role.hashCode() : 0);
         result = 31 * result + (provider != null ? provider.hashCode() : 0);
         result = 31 * result + (providerId != null ? providerId.hashCode() : 0);
+        result = 31 * result + (enabled ? 1 : 0);
         return result;
     }
 
@@ -153,6 +171,7 @@ public class UserDto {
                 ", role='" + role + '\'' +
                 ", provider='" + provider + '\'' +
                 ", providerId='" + providerId + '\'' +
+                ", enabled=" + enabled +
                 '}';
     }
 } 

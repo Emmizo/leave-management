@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.hr_management.hr.entity.Employee;
 import com.hr_management.hr.entity.Role;
@@ -43,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public AuthResponse register(RegisterRequestDto request) {
         // Check if username or email already exists
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -52,46 +54,55 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Create new user
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmail(request.getEmail());
-        user.setRole(Role.valueOf(request.getRole().toUpperCase()));
-        user.setEnabled(true);
-        userRepository.save(user);
+        try {
+            // Create new user
+            User user = new User();
+            user.setUsername(request.getUsername());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setEmail(request.getEmail());
+            user.setRole(Role.valueOf(request.getRole().toUpperCase()));
+            user.setEnabled(true);
+            user = userRepository.save(user);
 
-        // Create employee record
-        Employee employee = new Employee();
-        employee.setUser(user);
-        employee.setFirstName(request.getFirstName());
-        employee.setLastName(request.getLastName());
-        employee.setDepartment(request.getDepartment());
-        employee.setPosition(request.getPosition());
-        employeeRepository.save(employee);
+            // Create employee record
+            Employee employee = new Employee();
+            employee.setUser(user);
+            employee.setFirstName(request.getFirstName());
+            employee.setLastName(request.getLastName());
+            employee.setDepartment(request.getDepartment());
+            employee.setPosition(request.getPosition());
+            employee.setPhone(request.getPhone());
+            employee.setEmail(request.getEmail());
+            employee.setMicrosoftId(""); // Set default empty string
+            employee.setProfilePicturePath(""); // Set default empty string
+            employeeRepository.save(employee);
 
-        // Generate JWT token
-        String token = jwtService.generateToken(user);
+            // Generate JWT token
+            String token = jwtService.generateToken(user);
 
-        // Create EmployeeDto for response
-        EmployeeDto employeeDto = EmployeeDto.builder()
-                .firstName(employee.getFirstName())
-                .lastName(employee.getLastName())
-                .email(employee.getEmail())
-                .department(employee.getDepartment())
-                .position(employee.getPosition())
-                .user(UserDto.builder()
-                        .id(user.getId())
-                        .username(user.getUsername())
-                        .email(user.getEmail())
-                        .role(user.getRole().name())
-                        .build())
-                .build();
+            // Create EmployeeDto for response
+            EmployeeDto employeeDto = EmployeeDto.builder()
+                    .firstName(employee.getFirstName())
+                    .lastName(employee.getLastName())
+                    .email(employee.getEmail())
+                    .department(employee.getDepartment())
+                    .position(employee.getPosition())
+                    .phone(employee.getPhone())
+                    .user(UserDto.builder()
+                            .id(user.getId())
+                            .username(user.getUsername())
+                            .email(user.getEmail())
+                            .role(user.getRole().name())
+                            .build())
+                    .build();
 
-        return AuthResponse.builder()
-                .token(token)
-                .user(employeeDto)
-                .build();
+            return AuthResponse.builder()
+                    .token(token)
+                    .user(employeeDto)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create user and employee: " + e.getMessage());
+        }
     }
 
     @Override

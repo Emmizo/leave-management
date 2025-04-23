@@ -20,7 +20,7 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
 
-    @Value("${file.upload-dir:./uploads}") // Default value if property not set
+    @Value("${spring.servlet.multipart.location:./uploads}") // Use the correct property name
     private String uploadDir;
 
     private Path rootLocation;
@@ -71,8 +71,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
         }
         
-        // Return the path relative to the root upload directory
-        return relativePath; 
+        return relativePath;
     }
 
     @Override

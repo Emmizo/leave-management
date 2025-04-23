@@ -8,8 +8,10 @@ import com.hr_management.hr.enums.LeaveType;
 public class LeaveBalanceDto {
     private LeaveType leaveType;
     private String name;
-    private int daysAvailable;
-    private int daysAllowed;
+    private double daysAvailable;
+    private double daysAllowed;
+    private double carryForwardDays;
+    private int maxCarryForwardDays;
     private String status;
     private String colorCode; // For UI styling (blue, green, cyan, yellow etc)
     private List<LeaveDateRange> leaveDates;
@@ -40,12 +42,15 @@ public class LeaveBalanceDto {
     }
 
     // All-args constructor
-    public LeaveBalanceDto(LeaveType leaveType, String name, int daysAvailable, 
-                          int daysAllowed, String status, String colorCode, List<LeaveDateRange> leaveDates) {
+    public LeaveBalanceDto(LeaveType leaveType, String name, double daysAvailable, 
+                          double daysAllowed, double carryForwardDays, int maxCarryForwardDays, String status, 
+                          String colorCode, List<LeaveDateRange> leaveDates) {
         this.leaveType = leaveType;
         this.name = name;
         this.daysAvailable = daysAvailable;
         this.daysAllowed = daysAllowed;
+        this.carryForwardDays = carryForwardDays;
+        this.maxCarryForwardDays = maxCarryForwardDays;
         this.status = status;
         this.colorCode = colorCode;
         this.leaveDates = leaveDates;
@@ -59,8 +64,10 @@ public class LeaveBalanceDto {
     public static class Builder {
         private LeaveType leaveType;
         private String name;
-        private int daysAvailable;
-        private int daysAllowed;
+        private double daysAvailable;
+        private double daysAllowed;
+        private double carryForwardDays;
+        private int maxCarryForwardDays;
         private String status;
         private String colorCode;
         private List<LeaveDateRange> leaveDates;
@@ -75,13 +82,23 @@ public class LeaveBalanceDto {
             return this;
         }
 
-        public Builder daysAvailable(int daysAvailable) {
+        public Builder daysAvailable(double daysAvailable) {
             this.daysAvailable = daysAvailable;
             return this;
         }
 
-        public Builder daysAllowed(int daysAllowed) {
+        public Builder daysAllowed(double daysAllowed) {
             this.daysAllowed = daysAllowed;
+            return this;
+        }
+
+        public Builder carryForwardDays(double carryForwardDays) {
+            this.carryForwardDays = carryForwardDays;
+            return this;
+        }
+
+        public Builder maxCarryForwardDays(int maxCarryForwardDays) {
+            this.maxCarryForwardDays = maxCarryForwardDays;
             return this;
         }
 
@@ -101,7 +118,7 @@ public class LeaveBalanceDto {
         }
 
         public LeaveBalanceDto build() {
-            return new LeaveBalanceDto(leaveType, name, daysAvailable, daysAllowed, status, colorCode, leaveDates);
+            return new LeaveBalanceDto(leaveType, name, daysAvailable, daysAllowed, carryForwardDays, maxCarryForwardDays, status, colorCode, leaveDates);
         }
     }
 
@@ -122,20 +139,36 @@ public class LeaveBalanceDto {
         this.name = name;
     }
 
-    public int getDaysAvailable() {
+    public double getDaysAvailable() {
         return daysAvailable;
     }
 
-    public void setDaysAvailable(int daysAvailable) {
+    public void setDaysAvailable(double daysAvailable) {
         this.daysAvailable = daysAvailable;
     }
 
-    public int getDaysAllowed() {
+    public double getDaysAllowed() {
         return daysAllowed;
     }
 
-    public void setDaysAllowed(int daysAllowed) {
+    public void setDaysAllowed(double daysAllowed) {
         this.daysAllowed = daysAllowed;
+    }
+
+    public double getCarryForwardDays() {
+        return carryForwardDays;
+    }
+
+    public void setCarryForwardDays(double carryForwardDays) {
+        this.carryForwardDays = carryForwardDays;
+    }
+
+    public int getMaxCarryForwardDays() {
+        return maxCarryForwardDays;
+    }
+
+    public void setMaxCarryForwardDays(int maxCarryForwardDays) {
+        this.maxCarryForwardDays = maxCarryForwardDays;
     }
 
     public String getStatus() {
@@ -169,6 +202,8 @@ public class LeaveBalanceDto {
         LeaveBalanceDto that = (LeaveBalanceDto) o;
         return daysAvailable == that.daysAvailable &&
                 daysAllowed == that.daysAllowed &&
+                carryForwardDays == that.carryForwardDays &&
+                maxCarryForwardDays == that.maxCarryForwardDays &&
                 leaveType == that.leaveType &&
                 (name != null ? name.equals(that.name) : that.name == null) &&
                 (status != null ? status.equals(that.status) : that.status == null) &&
@@ -179,8 +214,10 @@ public class LeaveBalanceDto {
     public int hashCode() {
         int result = leaveType != null ? leaveType.hashCode() : 0;
         result = 31 * result + (name != null ? name.hashCode() : 0);
-        result = 31 * result + daysAvailable;
-        result = 31 * result + daysAllowed;
+        result = 31 * result + (int)daysAvailable;
+        result = 31 * result + (int)daysAllowed;
+        result = 31 * result + (int)carryForwardDays;
+        result = 31 * result + maxCarryForwardDays;
         result = 31 * result + (status != null ? status.hashCode() : 0);
         result = 31 * result + (colorCode != null ? colorCode.hashCode() : 0);
         return result;
@@ -193,6 +230,8 @@ public class LeaveBalanceDto {
                 ", name='" + name + '\'' +
                 ", daysAvailable=" + daysAvailable +
                 ", daysAllowed=" + daysAllowed +
+                ", carryForwardDays=" + carryForwardDays +
+                ", maxCarryForwardDays=" + maxCarryForwardDays +
                 ", status='" + status + '\'' +
                 ", colorCode='" + colorCode + '\'' +
                 '}';

@@ -26,72 +26,166 @@ public class HtmlEmailTemplateService {
                 <title>%s</title>
                 <style>
                     body {
-                        font-family: Arial, sans-serif;
+                        font-family: 'Segoe UI', Arial, sans-serif;
                         line-height: 1.6;
                         color: #333333;
                         margin: 0;
                         padding: 0;
+                        background-color: #f5f5f5;
                     }
                     .container {
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
+                        max-width: 650px;
+                        margin: 20px auto;
+                        padding: 0;
+                        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+                        border-radius: 8px;
+                        overflow: hidden;
                     }
                     .header {
-                        background-color: #1976D2;
-                        color: white;
-                        padding: 20px;
+                        background-color: #184C55;
+                        color: #ffffff;
+                        padding: 25px;
                         text-align: center;
-                        border-radius: 5px 5px 0 0;
+                    }
+                    .logo {
+                        margin-bottom: 15px;
+                    }
+                    .logo img {
+                        height: 50px;
+                        width: auto;
+                    }
+                    .header h1 {
+                        margin: 0;
+                        font-size: 24px;
+                        font-weight: 600;
+                        letter-spacing: 0.5px;
                     }
                     .content {
                         background-color: #ffffff;
-                        padding: 20px;
-                        border: 1px solid #dddddd;
-                        border-radius: 0 0 5px 5px;
+                        padding: 35px;
+                        border: 1px solid #e0e0e0;
                     }
                     .footer {
                         text-align: center;
                         padding: 20px;
                         color: #666666;
                         font-size: 12px;
+                        background-color: #f9f9f9;
+                        border-top: 1px solid #e0e0e0;
                     }
                     .button {
                         display: inline-block;
-                        padding: 10px 20px;
-                        background-color: #1976D2;
-                        color: white;
+                        padding: 12px 30px;
+                        background-color: #184C55;
+                        color: #ffffff;
                         text-decoration: none;
-                        border-radius: 5px;
-                        margin: 20px 0;
+                        border-radius: 4px;
+                        margin: 25px 0;
+                        font-weight: 500;
+                        transition: background-color 0.3s ease;
+                        text-align: center;
+                    }
+                    .button:hover {
+                        background-color: #0d2c33;
                     }
                     .info-box {
-                        background-color: #f5f5f5;
-                        border-left: 4px solid #1976D2;
-                        padding: 15px;
-                        margin: 15px 0;
+                        background-color: #f8f9fa;
+                        border-left: 4px solid #184C55;
+                        padding: 25px;
+                        margin: 25px 0;
+                        border-radius: 4px;
+                    }
+                    .info-box h3 {
+                        color: #184C55;
+                        margin-top: 0;
+                        margin-bottom: 20px;
+                        font-size: 18px;
                     }
                     .status-approved {
                         color: #2E7D32;
-                        font-weight: bold;
+                        font-weight: 600;
+                        padding: 4px 8px;
+                        background-color: #e8f5e9;
+                        border-radius: 4px;
                     }
                     .status-rejected {
                         color: #C62828;
-                        font-weight: bold;
+                        font-weight: 600;
+                        padding: 4px 8px;
+                        background-color: #ffebee;
+                        border-radius: 4px;
+                    }
+                    .status-pending {
+                        color: #F57C00;
+                        font-weight: 600;
+                        padding: 4px 8px;
+                        background-color: #FFF3E0;
+                        border-radius: 4px;
+                    }
+                    .details-row {
+                        display: flex;
+                        margin-bottom: 12px;
+                    }
+                    .details-label {
+                        font-weight: 600;
+                        color: #184C55;
+                        min-width: 140px;
+                    }
+                    .details-value {
+                        color: #333333;
+                    }
+                    .signature {
+                        margin-top: 30px;
+                        padding-top: 20px;
+                        border-top: 1px solid #eaeaea;
+                    }
+                    .social-icons {
+                        margin-top: 15px;
+                    }
+                    .social-icons a {
+                        display: inline-block;
+                        margin: 0 5px;
+                        color: #184C55;
+                    }
+                    @media (max-width: 600px) {
+                        .container {
+                            margin: 10px;
+                        }
+                        .content {
+                            padding: 20px;
+                        }
+                        .details-row {
+                            flex-direction: column;
+                        }
+                        .details-label {
+                            margin-bottom: 5px;
+                        }
                     }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="header">
+                        <div class="logo">
+                            <!-- Company Logo -->
+                            <img src="https://via.placeholder.com/150x50/184C55/FFFFFF?text=HR+SYSTEM" alt="Company Logo">
+                        </div>
                         <h1>%s</h1>
                     </div>
                     <div class="content">
                         %s
+                        <div class="signature">
+                            <p>Best regards,<br><strong>HR Management System</strong></p>
+                            <div class="social-icons">
+                                <a href="#">LinkedIn</a> | 
+                                <a href="#">Twitter</a> | 
+                                <a href="#">Website</a>
+                            </div>
+                        </div>
                     </div>
                     <div class="footer">
-                        <p>This is an automated message from the HR Management System.</p>
-                        <p>Please do not reply to this email.</p>
+                        <p>&copy; 2024 Your Company. All Rights Reserved.</p>
+                        <p>This is an automated message. Please do not reply to this email.</p>
                     </div>
                 </div>
             </body>
@@ -102,22 +196,47 @@ public class HtmlEmailTemplateService {
     public void sendWelcomeEmail(User user, Employee employee, String plainPassword) {
         String title = "Welcome to HR Management System";
         String content = String.format("""
-            <p>Hello <strong>%s</strong>,</p>
+            <p style="font-size: 16px;">Hello <strong>%s</strong>,</p>
             
-            <p>Welcome to the HR Management System! Your account has been successfully created.</p>
+            <p>Welcome to the HR Management System! Your employee account has been successfully created and is ready to use.</p>
             
             <div class="info-box">
-                <h3>Account Details:</h3>
-                <p><strong>Username:</strong> %s</p>
-                <p><strong>Password:</strong> %s</p>
-                <p><strong>Email:</strong> %s</p>
-                <p><strong>Department:</strong> %s</p>
-                <p><strong>Position:</strong> %s</p>
+                <h3>Your Account Details</h3>
+                <div class="details-row">
+                    <span class="details-label">Username:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Temporary Password:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Email:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Department:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Position:</span>
+                    <span class="details-value">%s</span>
+                </div>
             </div>
             
-            <p>Please log in to your account and consider changing your password for security.</p>
+            <p><strong>Next Steps:</strong></p>
+            <ol>
+                <li>Log in using the credentials above</li>
+                <li>Change your temporary password immediately</li>
+                <li>Complete your employee profile</li>
+                <li>Explore the HR Management System features</li>
+            </ol>
             
-            <p>Best regards,<br>HR Management Team</p>
+            <p>For security reasons, please change your password upon first login.</p>
+            
+            <a href="http://localhost:5456" class="button">Log In to Your Account</a>
+            
+            <p>If you have any questions or need assistance, please contact the HR department.</p>
             """,
             employee.getFirstName(),
             user.getUsername(),
@@ -136,24 +255,45 @@ public class HtmlEmailTemplateService {
         // Email to employee
         String empTitle = "Leave Request Submitted";
         String empContent = String.format("""
-            <p>Dear <strong>%s</strong>,</p>
+            <p style="font-size: 16px;">Dear <strong>%s</strong>,</p>
             
-            <p>Your leave request has been submitted and is pending approval.</p>
+            <p>Your leave request has been submitted and is <span class="status-pending">pending approval</span>.</p>
             
             <div class="info-box">
-                <h3>Leave Details:</h3>
-                <p><strong>Type:</strong> %s</p>
-                <p><strong>Start Date:</strong> %s</p>
-                <p><strong>End Date:</strong> %s</p>
-                <p><strong>Duration:</strong> %.1f days</p>
-                <p><strong>Reason:</strong> %s</p>
-                <p><strong>Hold Days:</strong> %.1f</p>
-                <p><strong>Leave Duration:</strong> %s</p>
+                <h3>Leave Request Details</h3>
+                <div class="details-row">
+                    <span class="details-label">Type:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Start Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">End Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Duration:</span>
+                    <span class="details-value">%.1f days</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Reason:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Hold Days:</span>
+                    <span class="details-value">%.1f</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Leave Type:</span>
+                    <span class="details-value">%s</span>
+                </div>
             </div>
             
-            <p>You will be notified once your request is reviewed.</p>
+            <p>You will receive a notification once your request has been reviewed by the HR department.</p>
             
-            <p>Best regards,<br>HR Department</p>
+            <p>If you have any questions regarding your leave request, please contact the HR department.</p>
             """,
             employee.getFirstName(),
             leave.getLeaveType(),
@@ -172,28 +312,63 @@ public class HtmlEmailTemplateService {
         // Email to HR/Admin
         String adminTitle = "New Leave Request Submitted";
         String adminContent = String.format("""
-            <p>A new leave request has been submitted.</p>
+            <p style="font-size: 16px;">A new leave request requires your attention.</p>
             
             <div class="info-box">
-                <h3>Employee Details:</h3>
-                <p><strong>Name:</strong> %s %s</p>
-                <p><strong>ID:</strong> %d</p>
-                <p><strong>Department:</strong> %s</p>
-                <p><strong>Position:</strong> %s</p>
-                
-                <h3>Leave Details:</h3>
-                <p><strong>Type:</strong> %s</p>
-                <p><strong>Start Date:</strong> %s</p>
-                <p><strong>End Date:</strong> %s</p>
-                <p><strong>Duration:</strong> %.1f days</p>
-                <p><strong>Reason:</strong> %s</p>
-                <p><strong>Hold Days:</strong> %.1f</p>
-                <p><strong>Leave Duration:</strong> %s</p>
+                <h3>Employee Information</h3>
+                <div class="details-row">
+                    <span class="details-label">Name:</span>
+                    <span class="details-value">%s %s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Employee ID:</span>
+                    <span class="details-value">%d</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Department:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Position:</span>
+                    <span class="details-value">%s</span>
+                </div>
             </div>
             
-            <p>Please review this request in the system.</p>
+            <div class="info-box">
+                <h3>Leave Request Details</h3>
+                <div class="details-row">
+                    <span class="details-label">Type:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Start Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">End Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Duration:</span>
+                    <span class="details-value">%.1f days</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Reason:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Hold Days:</span>
+                    <span class="details-value">%.1f</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Leave Type:</span>
+                    <span class="details-value">%s</span>
+                </div>
+            </div>
             
-            <p>Best regards,<br>HR Management System</p>
+            <p>Please review this request in the HR Management System.</p>
+            
+            <a href="#" class="button">Review Request</a>
             """,
             employee.getFirstName(),
             employee.getLastName(),
@@ -221,20 +396,32 @@ public class HtmlEmailTemplateService {
         String statusText = newStatus == LeaveStatus.APPROVED ? "approved" : "rejected";
         
         String content = String.format("""
-            <p>Dear <strong>%s</strong>,</p>
+            <p style="font-size: 16px;">Dear <strong>%s</strong>,</p>
             
             <p>Your leave request has been <span class="%s">%s</span>.</p>
             
             <div class="info-box">
-                <h3>Leave Details:</h3>
-                <p><strong>Type:</strong> %s</p>
-                <p><strong>Start Date:</strong> %s</p>
-                <p><strong>End Date:</strong> %s</p>
-                <p><strong>Duration:</strong> %.1f days</p>
+                <h3>Leave Request Details</h3>
+                <div class="details-row">
+                    <span class="details-label">Type:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Start Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">End Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Duration:</span>
+                    <span class="details-value">%.1f days</span>
+                </div>
                 %s
             </div>
             
-            <p>Best regards,<br>HR Department</p>
+            %s
             """,
             employee.getFirstName(),
             statusClass,
@@ -244,7 +431,21 @@ public class HtmlEmailTemplateService {
             leave.getEndDate(),
             leave.getNumberOfDays(),
             newStatus == LeaveStatus.REJECTED ? 
-                String.format("<p><strong>Rejection Reason:</strong> %s</p>", rejectionReason) : ""
+                String.format("""
+                    <div class="details-row">
+                        <span class="details-label">Rejection Reason:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    """, rejectionReason) : "",
+            newStatus == LeaveStatus.APPROVED ? 
+                """
+                <p>Your time off has been recorded in the HR system. If you need to cancel or modify this leave request, 
+                please contact the HR department as soon as possible.</p>
+                """ : 
+                """
+                <p>If you have questions about the rejection or would like to submit a modified request, 
+                please contact the HR department.</p>
+                """
         );
 
         if (employee.getEmail() != null) {
@@ -254,26 +455,55 @@ public class HtmlEmailTemplateService {
         // Send notification to HR/Admin about the status update
         String adminTitle = "Leave Request Status Updated";
         String adminContent = String.format("""
-            <p>A leave request status has been updated.</p>
+            <p style="font-size: 16px;">A leave request status has been updated to <span class="%s">%s</span>.</p>
             
             <div class="info-box">
-                <h3>Employee Details:</h3>
-                <p><strong>Name:</strong> %s %s</p>
-                <p><strong>ID:</strong> %d</p>
-                <p><strong>Department:</strong> %s</p>
-                <p><strong>Position:</strong> %s</p>
-                
-                <h3>Leave Details:</h3>
-                <p><strong>Type:</strong> %s</p>
-                <p><strong>Start Date:</strong> %s</p>
-                <p><strong>End Date:</strong> %s</p>
-                <p><strong>Duration:</strong> %.1f days</p>
-                <p><strong>Status:</strong> <span class="%s">%s</span></p>
-                %s
+                <h3>Employee Information</h3>
+                <div class="details-row">
+                    <span class="details-label">Name:</span>
+                    <span class="details-value">%s %s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Employee ID:</span>
+                    <span class="details-value">%d</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Department:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Position:</span>
+                    <span class="details-value">%s</span>
+                </div>
             </div>
             
-            <p>Best regards,<br>HR Management System</p>
+            <div class="info-box">
+                <h3>Leave Request Details</h3>
+                <div class="details-row">
+                    <span class="details-label">Type:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Start Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">End Date:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Duration:</span>
+                    <span class="details-value">%.1f days</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Status:</span>
+                    <span class="%s">%s</span>
+                </div>
+                %s
+            </div>
             """,
+            statusClass,
+            statusText,
             employee.getFirstName(),
             employee.getLastName(),
             employee.getId(),
@@ -286,7 +516,12 @@ public class HtmlEmailTemplateService {
             statusClass,
             newStatus,
             newStatus == LeaveStatus.REJECTED ? 
-                String.format("<p><strong>Rejection Reason:</strong> %s</p>", rejectionReason) : ""
+                String.format("""
+                    <div class="details-row">
+                        <span class="details-label">Rejection Reason:</span>
+                        <span class="details-value">%s</span>
+                    </div>
+                    """, rejectionReason) : ""
         );
 
         // Send admin notification
@@ -294,40 +529,58 @@ public class HtmlEmailTemplateService {
     }
 
     public void sendPasswordResetEmail(User user, String resetToken) {
-        String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
-        String subject = "Password Reset Request";
-        String htmlContent = """
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2c3e50;">Password Reset Request</h2>
-                <p>Hello %s,</p>
-                <p>You have requested to reset your password for the HR Management System.</p>
-                <p>Please click the button below to reset your password:</p>
-                <p style="text-align: center;">
-                    <a href="%s" 
-                       style="background-color: #3498db; 
-                              color: white; 
-                              padding: 12px 24px; 
-                              text-decoration: none; 
-                              border-radius: 4px; 
-                              display: inline-block;
-                              margin: 16px 0;">
-                        Reset Password
-                    </a>
-                </p>
-                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-                <p><a href="%s">%s</a></p>
-                <p>This link will expire in 24 hours.</p>
-                <p>If you did not request a password reset, please ignore this email.</p>
-                <br>
-                <p>Best regards,<br>HR Management Team</p>
+        String title = "Password Reset Request";
+        String resetLink = "http://localhost:5456/reset-password?token=" + resetToken;
+        
+        String content = String.format("""
+            <p style="font-size: 16px;">Hello <strong>%s</strong>,</p>
+            
+            <p>We received a request to reset your password for the HR Management System.</p>
+            
+            <div class="info-box">
+                <h3>Password Reset Information</h3>
+                <div class="details-row">
+                    <span class="details-label">Username:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Email:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Request Time:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Expires:</span>
+                    <span class="details-value">24 hours from request</span>
+                </div>
             </div>
-            """.formatted(
-                user.getUsername(),
-                resetLink,
-                resetLink,
-                resetLink
-            );
+            
+            <p>To reset your password, please click the button below:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="%s" class="button">Reset Your Password</a>
+            </div>
+            
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <p style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all;">
+                <a href="%s">%s</a>
+            </p>
+            
+            <p><strong>Important:</strong> This link will expire in 24 hours. If you did not request a password reset, please ignore this email or contact the HR department immediately if you have concerns.</p>
+            """,
+            user.getUsername(),
+            user.getUsername(),
+            user.getEmail(),
+            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+            resetLink,
+            resetLink,
+            resetLink
+        );
 
-        emailService.sendHtmlMessage(user.getEmail(), subject, htmlContent);
+        if (user.getEmail() != null) {
+            emailService.sendHtmlMessage(user.getEmail(), title, getEmailTemplate(title, content));
+        }
     }
 } 

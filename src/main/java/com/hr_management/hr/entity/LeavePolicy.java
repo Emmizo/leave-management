@@ -30,6 +30,9 @@ public class LeavePolicy {
     @Column(name = "carry_forward_days")
     private Integer carryForwardDays;
 
+    @Column(name = "exclusion_year")
+    private Integer exclusionYear;
+
     @Column(name = "max_consecutive_days")
     private Integer maxConsecutiveDays;
 
@@ -54,7 +57,7 @@ public class LeavePolicy {
 
     // All-args constructor
     public LeavePolicy(Long id, String name, String description, Double daysPerMonth, 
-                      Integer carryForwardDays, Integer maxConsecutiveDays, 
+                      Integer carryForwardDays, Integer exclusionYear, Integer maxConsecutiveDays, 
                       Integer minNoticeDays, boolean requiresApproval, boolean active, 
                       LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
@@ -62,6 +65,7 @@ public class LeavePolicy {
         this.description = description;
         this.daysPerMonth = daysPerMonth;
         this.carryForwardDays = carryForwardDays;
+        this.exclusionYear = exclusionYear;
         this.maxConsecutiveDays = maxConsecutiveDays;
         this.minNoticeDays = minNoticeDays;
         this.requiresApproval = requiresApproval;
@@ -120,6 +124,14 @@ public class LeavePolicy {
 
     public void setCarryForwardDays(Integer carryForwardDays) {
         this.carryForwardDays = carryForwardDays;
+    }
+
+    public Integer getExclusionYear() {
+        return exclusionYear;
+    }
+
+    public void setExclusionYear(Integer exclusionYear) {
+        this.exclusionYear = exclusionYear;
     }
 
     public Integer getMaxConsecutiveDays() {
@@ -191,6 +203,7 @@ public class LeavePolicy {
                 ", description='" + description + '\'' +
                 ", daysPerMonth=" + daysPerMonth +
                 ", carryForwardDays=" + carryForwardDays +
+                ", exclusionYear=" + exclusionYear +
                 ", maxConsecutiveDays=" + maxConsecutiveDays +
                 ", minNoticeDays=" + minNoticeDays +
                 ", requiresApproval=" + requiresApproval +

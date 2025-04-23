@@ -1,5 +1,6 @@
 package com.hr_management.hr.model;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class EmployeeDto {
@@ -9,10 +10,12 @@ public class EmployeeDto {
     private String lastName;
     private String department;
     private String position;
+    private String phone;
     private Integer annualLeaveBalance;
     private String microsoftId;
     private UserDto user;
     private List<LeaveDto> leaves;
+    private LocalDateTime createdAt;
 
     // Default constructor
     public EmployeeDto() {
@@ -20,18 +23,20 @@ public class EmployeeDto {
 
     // All-args constructor
     public EmployeeDto(Long id, String email, String firstName, String lastName, 
-                      String department, String position, Integer annualLeaveBalance, 
-                      String microsoftId, UserDto user, List<LeaveDto> leaves) {
+                      String department, String position, String phone, Integer annualLeaveBalance, 
+                      String microsoftId, UserDto user, List<LeaveDto> leaves, LocalDateTime createdAt) {
         this.id = id;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
         this.department = department;
         this.position = position;
+        this.phone = phone;
         this.annualLeaveBalance = annualLeaveBalance;
         this.microsoftId = microsoftId;
         this.user = user;
         this.leaves = leaves;
+        this.createdAt = createdAt;
     }
 
     // Builder pattern
@@ -46,10 +51,12 @@ public class EmployeeDto {
         private String lastName;
         private String department;
         private String position;
+        private String phone;
         private Integer annualLeaveBalance;
         private String microsoftId;
         private UserDto user;
         private List<LeaveDto> leaves;
+        private LocalDateTime createdAt;
 
         public Builder id(Long id) {
             this.id = id;
@@ -81,6 +88,11 @@ public class EmployeeDto {
             return this;
         }
 
+        public Builder phone(String phone) {
+            this.phone = phone;
+            return this;
+        }
+
         public Builder annualLeaveBalance(Integer annualLeaveBalance) {
             this.annualLeaveBalance = annualLeaveBalance;
             return this;
@@ -101,9 +113,14 @@ public class EmployeeDto {
             return this;
         }
 
+        public Builder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
         public EmployeeDto build() {
             return new EmployeeDto(id, email, firstName, lastName, department, 
-                                 position, annualLeaveBalance, microsoftId, user, leaves);
+                                 position, phone, annualLeaveBalance, microsoftId, user, leaves, createdAt);
         }
     }
 
@@ -156,6 +173,14 @@ public class EmployeeDto {
         this.position = position;
     }
 
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
     public Integer getAnnualLeaveBalance() {
         return annualLeaveBalance;
     }
@@ -188,6 +213,14 @@ public class EmployeeDto {
         this.leaves = leaves;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -199,10 +232,12 @@ public class EmployeeDto {
                 (lastName != null ? lastName.equals(that.lastName) : that.lastName == null) &&
                 (department != null ? department.equals(that.department) : that.department == null) &&
                 (position != null ? position.equals(that.position) : that.position == null) &&
+                (phone != null ? phone.equals(that.phone) : that.phone == null) &&
                 (annualLeaveBalance != null ? annualLeaveBalance.equals(that.annualLeaveBalance) : that.annualLeaveBalance == null) &&
                 (microsoftId != null ? microsoftId.equals(that.microsoftId) : that.microsoftId == null) &&
                 (user != null ? user.equals(that.user) : that.user == null) &&
-                (leaves != null ? leaves.equals(that.leaves) : that.leaves == null);
+                (leaves != null ? leaves.equals(that.leaves) : that.leaves == null) &&
+                (createdAt != null ? createdAt.equals(that.createdAt) : that.createdAt == null);
     }
 
     @Override
@@ -213,10 +248,12 @@ public class EmployeeDto {
         result = 31 * result + (lastName != null ? lastName.hashCode() : 0);
         result = 31 * result + (department != null ? department.hashCode() : 0);
         result = 31 * result + (position != null ? position.hashCode() : 0);
+        result = 31 * result + (phone != null ? phone.hashCode() : 0);
         result = 31 * result + (annualLeaveBalance != null ? annualLeaveBalance.hashCode() : 0);
         result = 31 * result + (microsoftId != null ? microsoftId.hashCode() : 0);
         result = 31 * result + (user != null ? user.hashCode() : 0);
         result = 31 * result + (leaves != null ? leaves.hashCode() : 0);
+        result = 31 * result + (createdAt != null ? createdAt.hashCode() : 0);
         return result;
     }
 
@@ -229,10 +266,12 @@ public class EmployeeDto {
                 ", lastName='" + lastName + '\'' +
                 ", department='" + department + '\'' +
                 ", position='" + position + '\'' +
+                ", phone='" + phone + '\'' +
                 ", annualLeaveBalance=" + annualLeaveBalance +
                 ", microsoftId='" + microsoftId + '\'' +
                 ", user=" + user +
                 ", leaves=" + leaves +
+                ", createdAt=" + createdAt +
                 '}';
     }
 } 
