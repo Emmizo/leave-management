@@ -8,6 +8,7 @@ public class UserDto {
     private String provider;
     private String providerId;
     private boolean enabled = true;
+    private String profilePictureUrl;
 
     // Default constructor
     public UserDto() {
@@ -15,7 +16,7 @@ public class UserDto {
 
     // All-args constructor
     public UserDto(Long id, String username, String email, String role, 
-                  String provider, String providerId, boolean enabled) {
+                  String provider, String providerId, boolean enabled, String profilePictureUrl) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -23,6 +24,7 @@ public class UserDto {
         this.provider = provider;
         this.providerId = providerId;
         this.enabled = enabled;
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     // Builder pattern
@@ -38,6 +40,7 @@ public class UserDto {
         private String provider;
         private String providerId;
         private boolean enabled = true;
+        private String profilePictureUrl;
 
         public Builder id(Long id) {
             this.id = id;
@@ -74,8 +77,13 @@ public class UserDto {
             return this;
         }
 
+        public Builder profilePictureUrl(String profilePictureUrl) {
+            this.profilePictureUrl = profilePictureUrl;
+            return this;
+        }
+
         public UserDto build() {
-            return new UserDto(id, username, email, role, provider, providerId, enabled);
+            return new UserDto(id, username, email, role, provider, providerId, enabled, profilePictureUrl);
         }
     }
 
@@ -134,6 +142,14 @@ public class UserDto {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     @Override

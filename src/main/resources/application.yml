@@ -1,0 +1,5 @@
+microsoft:
+  client-id: "3193b05b-c8ec-4bad-8e5a-0845d604883d"
+  client-secret: "3c800082-4144-473c-b0ed-08885d1353a0"
+  tenant-id: "common" # Using 'common' for multi-tenant applications
+  redirect-uri: "http://localhost:3000/microsoft-callback"

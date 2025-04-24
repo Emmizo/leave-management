@@ -55,11 +55,8 @@ public class Employee {
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<Leave> leaves;
 
-    @Column(nullable = false)
-    private String microsoftId; // For Microsoft Authentication
-
-    @Column(name = "profile_picture_path")
-    private String profilePicturePath;
+    @Column(name = "microsoft_id")
+    private String microsoftId;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -76,8 +73,7 @@ public class Employee {
     // All-args constructor
     public Employee(Long id, String email, User user, String firstName, String lastName, 
                    String department, String position, String phone, Integer annualLeaveBalance, 
-                   List<Leave> leaves, String microsoftId, String profilePicturePath, 
-                   LocalDateTime createdAt, Gender gender) {
+                   List<Leave> leaves, String microsoftId, LocalDateTime createdAt, Gender gender) {
         this.id = id;
         this.email = email;
         this.user = user;
@@ -89,7 +85,6 @@ public class Employee {
         this.annualLeaveBalance = annualLeaveBalance;
         this.leaves = leaves;
         this.microsoftId = microsoftId;
-        this.profilePicturePath = profilePicturePath;
         this.createdAt = createdAt;
         this.gender = gender;
     }
@@ -111,7 +106,6 @@ public class Employee {
         private Integer annualLeaveBalance = 20;
         private List<Leave> leaves;
         private String microsoftId;
-        private String profilePicturePath;
         private LocalDateTime createdAt;
         private Gender gender;
 
@@ -170,11 +164,6 @@ public class Employee {
             return this;
         }
 
-        public Builder profilePicturePath(String profilePicturePath) {
-            this.profilePicturePath = profilePicturePath;
-            return this;
-        }
-
         public Builder createdAt(LocalDateTime createdAt) {
             this.createdAt = createdAt;
             return this;
@@ -188,7 +177,7 @@ public class Employee {
         public Employee build() {
             return new Employee(id, email, user, firstName, lastName, department, 
                                position, phone, annualLeaveBalance, leaves, microsoftId, 
-                               profilePicturePath, createdAt, gender);
+                               createdAt, gender);
         }
     }
 
@@ -273,14 +262,6 @@ public class Employee {
         this.microsoftId = microsoftId;
     }
 
-    public String getProfilePicturePath() {
-        return profilePicturePath;
-    }
-
-    public void setProfilePicturePath(String profilePicturePath) {
-        this.profilePicturePath = profilePicturePath;
-    }
-
     public String getPhone() {
         return phone;
     }
@@ -329,7 +310,6 @@ public class Employee {
                 ", position='" + position + '\'' +
                 ", annualLeaveBalance=" + annualLeaveBalance +
                 ", microsoftId='" + microsoftId + '\'' +
-                ", profilePicturePath='" + profilePicturePath + '\'' +
                 ", createdAt=" + createdAt +
                 ", gender=" + gender +
                 '}';

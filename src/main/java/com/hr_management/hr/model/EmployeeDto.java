@@ -15,6 +15,7 @@ public class EmployeeDto {
     private String phone;
     private Integer annualLeaveBalance;
     private String microsoftId;
+    private String profilePictureUrl;
     private UserDto user;
     private List<LeaveDto> leaves;
     private LocalDateTime createdAt;
@@ -27,7 +28,7 @@ public class EmployeeDto {
     // All-args constructor
     public EmployeeDto(Long id, String email, String firstName, String lastName, 
                       String department, String position, String phone, Integer annualLeaveBalance, 
-                      String microsoftId, UserDto user, List<LeaveDto> leaves, LocalDateTime createdAt,
+                      String microsoftId, String profilePictureUrl, UserDto user, List<LeaveDto> leaves, LocalDateTime createdAt,
                       Gender gender) {
         this.id = id;
         this.email = email;
@@ -38,6 +39,7 @@ public class EmployeeDto {
         this.phone = phone;
         this.annualLeaveBalance = annualLeaveBalance;
         this.microsoftId = microsoftId;
+        this.profilePictureUrl = profilePictureUrl;
         this.user = user;
         this.leaves = leaves;
         this.createdAt = createdAt;
@@ -59,6 +61,7 @@ public class EmployeeDto {
         private String phone;
         private Integer annualLeaveBalance;
         private String microsoftId;
+        private String profilePictureUrl;
         private UserDto user;
         private List<LeaveDto> leaves;
         private LocalDateTime createdAt;
@@ -109,6 +112,11 @@ public class EmployeeDto {
             return this;
         }
 
+        public Builder profilePictureUrl(String profilePictureUrl) {
+            this.profilePictureUrl = profilePictureUrl;
+            return this;
+        }
+
         public Builder user(UserDto user) {
             this.user = user;
             return this;
@@ -131,7 +139,7 @@ public class EmployeeDto {
 
         public EmployeeDto build() {
             return new EmployeeDto(id, email, firstName, lastName, department, 
-                                 position, phone, annualLeaveBalance, microsoftId, user, 
+                                 position, phone, annualLeaveBalance, microsoftId, profilePictureUrl, user, 
                                  leaves, createdAt, gender);
         }
     }
@@ -209,6 +217,14 @@ public class EmployeeDto {
         this.microsoftId = microsoftId;
     }
 
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+
     public UserDto getUser() {
         return user;
     }
@@ -255,6 +271,7 @@ public class EmployeeDto {
                 (phone != null ? phone.equals(that.phone) : that.phone == null) &&
                 (annualLeaveBalance != null ? annualLeaveBalance.equals(that.annualLeaveBalance) : that.annualLeaveBalance == null) &&
                 (microsoftId != null ? microsoftId.equals(that.microsoftId) : that.microsoftId == null) &&
+                (profilePictureUrl != null ? profilePictureUrl.equals(that.profilePictureUrl) : that.profilePictureUrl == null) &&
                 (user != null ? user.equals(that.user) : that.user == null) &&
                 (leaves != null ? leaves.equals(that.leaves) : that.leaves == null) &&
                 (createdAt != null ? createdAt.equals(that.createdAt) : that.createdAt == null) &&
@@ -272,6 +289,7 @@ public class EmployeeDto {
         result = 31 * result + (phone != null ? phone.hashCode() : 0);
         result = 31 * result + (annualLeaveBalance != null ? annualLeaveBalance.hashCode() : 0);
         result = 31 * result + (microsoftId != null ? microsoftId.hashCode() : 0);
+        result = 31 * result + (profilePictureUrl != null ? profilePictureUrl.hashCode() : 0);
         result = 31 * result + (user != null ? user.hashCode() : 0);
         result = 31 * result + (leaves != null ? leaves.hashCode() : 0);
         result = 31 * result + (createdAt != null ? createdAt.hashCode() : 0);
@@ -291,6 +309,7 @@ public class EmployeeDto {
                 ", phone='" + phone + '\'' +
                 ", annualLeaveBalance=" + annualLeaveBalance +
                 ", microsoftId='" + microsoftId + '\'' +
+                ", profilePictureUrl='" + profilePictureUrl + '\'' +
                 ", user=" + user +
                 ", leaves=" + leaves +
                 ", createdAt=" + createdAt +

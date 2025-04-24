@@ -3,15 +3,17 @@ package com.hr_management.hr.model;
 public class AuthResponse {
     private String token;
     private EmployeeDto user;
+    private String profilePictureUrl;
 
     // Default constructor
     public AuthResponse() {
     }
 
     // All-args constructor
-    public AuthResponse(String token, EmployeeDto user) {
+    public AuthResponse(String token, EmployeeDto user, String profilePictureUrl) {
         this.token = token;
         this.user = user;
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     // Builder pattern
@@ -22,6 +24,7 @@ public class AuthResponse {
     public static class Builder {
         private String token;
         private EmployeeDto user;
+        private String profilePictureUrl;
 
         public Builder token(String token) {
             this.token = token;
@@ -33,8 +36,17 @@ public class AuthResponse {
             return this;
         }
 
+        public Builder profilePictureUrl(String profilePictureUrl) {
+            this.profilePictureUrl = profilePictureUrl;
+            return this;
+        }
+
         public AuthResponse build() {
-            return new AuthResponse(token, user);
+            AuthResponse response = new AuthResponse();
+            response.token = this.token;
+            response.user = this.user;
+            response.profilePictureUrl = this.profilePictureUrl;
+            return response;
         }
     }
 
@@ -55,19 +67,25 @@ public class AuthResponse {
         this.user = user;
     }
 
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AuthResponse that = (AuthResponse) o;
         return (token != null ? token.equals(that.token) : that.token == null) &&
-                (user != null ? user.equals(that.user) : that.user == null);
+                (user != null ? user.equals(that.user) : that.user == null) &&
+                (profilePictureUrl != null ? profilePictureUrl.equals(that.profilePictureUrl) : that.profilePictureUrl == null);
     }
 
     @Override
     public int hashCode() {
         int result = token != null ? token.hashCode() : 0;
         result = 31 * result + (user != null ? user.hashCode() : 0);
+        result = 31 * result + (profilePictureUrl != null ? profilePictureUrl.hashCode() : 0);
         return result;
     }
 
@@ -76,6 +94,7 @@ public class AuthResponse {
         return "AuthResponse{" +
                 "token='" + token + '\'' +
                 ", user=" + user +
+                ", profilePictureUrl='" + profilePictureUrl + '\'' +
                 '}';
     }
 } 

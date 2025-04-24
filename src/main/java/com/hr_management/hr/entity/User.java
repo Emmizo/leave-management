@@ -36,6 +36,9 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "profile_picture_url", nullable = true)
+    private String profilePictureUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -251,6 +254,14 @@ public class User implements UserDetails {
 
     public void setResetTokenExpiryDate(LocalDateTime resetTokenExpiryDate) {
         this.resetTokenExpiryDate = resetTokenExpiryDate;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     @Override
