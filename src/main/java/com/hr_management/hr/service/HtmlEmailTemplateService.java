@@ -242,7 +242,7 @@ public class HtmlEmailTemplateService {
                 leave.getStartDate(),
                 leave.getEndDate(),
                 leave.getReason(),
-                "http://localhost:8080/leave-requests" // Replace with actual URL
+                "http://localhost:3000/leave-history" // Replace with actual URL
             );
         } else {
             content = String.format("""
@@ -276,7 +276,7 @@ public class HtmlEmailTemplateService {
                 leave.getLeaveType(),
                 leave.getStartDate(),
                 leave.getEndDate(),
-                "http://localhost:8080/my-leaves" // Replace with actual URL
+                "http://localhost:3000/leave-history" // Replace with actual URL
             );
         }
         
@@ -320,7 +320,7 @@ public class HtmlEmailTemplateService {
                 leave.getStatus(),
                 leave.getRejectionReason(),
                 leave.getStatus().toString().toLowerCase(),
-                "http://localhost:8080/leave-requests" // Replace with actual URL
+                "http://localhost:3000/leave-history" // Replace with actual URL
             );
         } else {
             content = String.format("""
@@ -374,7 +374,7 @@ public class HtmlEmailTemplateService {
 
     public void sendPasswordResetEmail(User user, String resetToken) {
         String title = "Password Reset Request";
-        String resetLink = "http://localhost:5456/reset-password?token=" + resetToken;
+        String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
         
         String content = String.format("""
             <p style="font-size: 16px;">Hello <strong>%s</strong>,</p>
@@ -421,6 +421,45 @@ public class HtmlEmailTemplateService {
             resetLink,
             resetLink,
             resetLink
+        );
+
+        if (user.getEmail() != null) {
+            emailService.sendHtmlMessage(user.getEmail(), title, getEmailTemplate(title, content));
+        }
+    }
+
+    public void sendPasswordResetConfirmationEmail(User user) {
+        String title = "Password Reset Confirmation";
+        
+        String content = String.format("""
+            <p style="font-size: 16px;">Hello <strong>%s</strong>,</p>
+            
+            <p>Your password has been successfully reset for the HR Management System.</p>
+            
+            <div class="info-box">
+                <h3>Account Information</h3>
+                <div class="details-row">
+                    <span class="details-label">Username:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Email:</span>
+                    <span class="details-value">%s</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Reset Time:</span>
+                    <span class="details-value">%s</span>
+                </div>
+            </div>
+            
+            <p><strong>Important:</strong> If you did not request this password reset, please contact the HR department immediately.</p>
+            
+            <p>You can now log in to your account using your new password.</p>
+            """,
+            user.getUsername(),
+            user.getUsername(),
+            user.getEmail(),
+            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         );
 
         if (user.getEmail() != null) {

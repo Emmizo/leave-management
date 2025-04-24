@@ -3,6 +3,8 @@ package com.hr_management.hr.service.impl;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +18,6 @@ import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.ForgotPasswordRequestDto;
 import com.hr_management.hr.model.RegisterRequestDto;
 import com.hr_management.hr.model.ResetPasswordRequestDto;
-import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
 import com.hr_management.hr.service.AuthService;
@@ -25,6 +26,8 @@ import com.hr_management.hr.service.JwtService;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
+    
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
@@ -32,10 +35,10 @@ public class AuthServiceImpl implements AuthService {
     private final HtmlEmailTemplateService htmlEmailTemplateService;
 
     public AuthServiceImpl(UserRepository userRepository, 
-                          EmployeeRepository employeeRepository, 
-                          PasswordEncoder passwordEncoder, 
-                          JwtService jwtService, 
-                          HtmlEmailTemplateService htmlEmailTemplateService) {
+                         EmployeeRepository employeeRepository,
+                         PasswordEncoder passwordEncoder,
+                         JwtService jwtService,
+                         HtmlEmailTemplateService htmlEmailTemplateService) {
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
@@ -55,10 +58,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
+            // Generate a random password
+            String randomPassword = generateRandomPassword();
+            
             // Create new user
             User user = new User();
             user.setUsername(request.getUsername());
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setPassword(passwordEncoder.encode(randomPassword));
             user.setEmail(request.getEmail());
             user.setRole(Role.valueOf(request.getRole().toUpperCase()));
             user.setEnabled(true);
@@ -73,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
             employee.setPosition(request.getPosition());
             employee.setPhone(request.getPhone());
             employee.setEmail(request.getEmail());
+            employee.setGender(request.getGender());
             employee.setMicrosoftId(""); // Set default empty string
             employee.setProfilePicturePath(""); // Set default empty string
             employeeRepository.save(employee);
@@ -87,65 +94,138 @@ public class AuthServiceImpl implements AuthService {
                     .email(employee.getEmail())
                     .department(employee.getDepartment())
                     .position(employee.getPosition())
-                    .phone(employee.getPhone())
-                    .user(UserDto.builder()
-                            .id(user.getId())
-                            .username(user.getUsername())
-                            .email(user.getEmail())
-                            .role(user.getRole().name())
-                            .build())
+                    .gender(employee.getGender())
                     .build();
 
-            return AuthResponse.builder()
-                    .token(token)
-                    .user(employeeDto)
-                    .build();
+            // Send welcome email with the random password
+            htmlEmailTemplateService.sendWelcomeEmail(user, employee, randomPassword);
+
+            return new AuthResponse(token, employeeDto);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create user and employee: " + e.getMessage());
+            log.error("Error during registration: {}", e.getMessage());
+            throw new RuntimeException("Error during registration: " + e.getMessage());
         }
+    }
+
+    /**
+     * Generates a random password that meets security requirements
+     * @return A secure random password
+     */
+    private String generateRandomPassword() {
+        String upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lowerCase = "abcdefghijklmnopqrstuvwxyz";
+        String numbers = "0123456789";
+        String specialChars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+        
+        // Ensure at least one of each character type
+        StringBuilder password = new StringBuilder();
+        password.append(upperCase.charAt((int)(Math.random() * upperCase.length())));
+        password.append(lowerCase.charAt((int)(Math.random() * lowerCase.length())));
+        password.append(numbers.charAt((int)(Math.random() * numbers.length())));
+        password.append(specialChars.charAt((int)(Math.random() * specialChars.length())));
+        
+        // Add additional random characters to make it 12 characters long
+        String allChars = upperCase + lowerCase + numbers + specialChars;
+        for (int i = 0; i < 8; i++) {
+            password.append(allChars.charAt((int)(Math.random() * allChars.length())));
+        }
+        
+        // Shuffle the password
+        char[] passwordArray = password.toString().toCharArray();
+        for (int i = passwordArray.length - 1; i > 0; i--) {
+            int j = (int)(Math.random() * (i + 1));
+            char temp = passwordArray[i];
+            passwordArray[i] = passwordArray[j];
+            passwordArray[j] = temp;
+        }
+        
+        return new String(passwordArray);
     }
 
     @Override
     public void resetPassword(String email, String newPassword) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", 0L));
+        log.info("Processing direct password reset for email: {}", email);
+        
+        // Validate new password
+        if (newPassword == null || newPassword.length() < 8) {
+            log.error("Invalid new password provided");
+            throw new RuntimeException("Password must be at least 8 characters long");
+        }
 
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found with email: {}", email);
+                    return new ResourceNotFoundException("User", "email", 0L);
+                });
+
+        // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        log.info("Password successfully reset for user: {}", user.getUsername());
 
-        htmlEmailTemplateService.sendWelcomeEmail(user, userRepository.findById(user.getId()).get().getEmployee(), newPassword);
+        // Send password reset confirmation email
+        htmlEmailTemplateService.sendPasswordResetConfirmationEmail(user);
     }
 
     @Override
     public void forgotPassword(ForgotPasswordRequestDto request) {
+        log.info("Processing forgot password request for email: {}", request.getEmail());
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", 0L));
+                .orElseThrow(() -> {
+                    log.error("User not found with email: {}", request.getEmail());
+                    return new ResourceNotFoundException("User", "email", 0L);
+                });
 
+        // Generate a new reset token
         String resetToken = UUID.randomUUID().toString();
         user.setResetToken(resetToken);
         user.setResetTokenExpiryDate(LocalDateTime.now().plusHours(24));
         userRepository.save(user);
+        log.info("Reset token generated for user: {}", user.getUsername());
 
         // Send password reset email with link
         htmlEmailTemplateService.sendPasswordResetEmail(user, resetToken);
+        log.info("Password reset email sent to: {}", user.getEmail());
     }
 
     @Override
     public void resetPasswordWithToken(ResetPasswordRequestDto request) {
+        log.info("Processing password reset with token");
+        
+        // Validate new password
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 8) {
+            log.error("Invalid new password provided");
+            throw new RuntimeException("Password must be at least 8 characters long");
+        }
+
         // Find user by reset token
         User user = userRepository.findByResetToken(request.getToken())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "reset token", 0L));
+                .orElseThrow(() -> {
+                    log.error("Invalid reset token provided");
+                    return new ResourceNotFoundException("User", "reset token", 0L);
+                });
 
         // Validate token expiry
         if (user.getResetTokenExpiryDate().isBefore(LocalDateTime.now())) {
+            log.error("Reset token expired for user: {}", user.getUsername());
             throw new RuntimeException("Reset token has expired");
         }
 
+        // Log the raw password before encoding (for debugging only)
+        log.debug("Raw new password length: {}", request.getNewPassword().length());
+        
         // Update password
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+        log.debug("Password encoded successfully");
+        
+        user.setPassword(encodedPassword);
         // Clear the reset token
         user.setResetToken(null);
         user.setResetTokenExpiryDate(null);
         userRepository.save(user);
+        log.info("Password successfully reset for user: {}", user.getUsername());
+
+        // Send password reset confirmation email
+        htmlEmailTemplateService.sendPasswordResetConfirmationEmail(user);
     }
 } 

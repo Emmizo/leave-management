@@ -5,9 +5,13 @@ import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.hr_management.hr.enums.Gender;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -61,6 +65,10 @@ public class Employee {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true)
+    private Gender gender;
+
     // Default constructor
     public Employee() {
     }
@@ -68,7 +76,8 @@ public class Employee {
     // All-args constructor
     public Employee(Long id, String email, User user, String firstName, String lastName, 
                    String department, String position, String phone, Integer annualLeaveBalance, 
-                   List<Leave> leaves, String microsoftId, String profilePicturePath, LocalDateTime createdAt) {
+                   List<Leave> leaves, String microsoftId, String profilePicturePath, 
+                   LocalDateTime createdAt, Gender gender) {
         this.id = id;
         this.email = email;
         this.user = user;
@@ -82,6 +91,7 @@ public class Employee {
         this.microsoftId = microsoftId;
         this.profilePicturePath = profilePicturePath;
         this.createdAt = createdAt;
+        this.gender = gender;
     }
 
     // Builder pattern
@@ -103,6 +113,7 @@ public class Employee {
         private String microsoftId;
         private String profilePicturePath;
         private LocalDateTime createdAt;
+        private Gender gender;
 
         public Builder id(Long id) {
             this.id = id;
@@ -169,9 +180,15 @@ public class Employee {
             return this;
         }
 
+        public Builder gender(Gender gender) {
+            this.gender = gender;
+            return this;
+        }
+
         public Employee build() {
             return new Employee(id, email, user, firstName, lastName, department, 
-                               position, phone, annualLeaveBalance, leaves, microsoftId, profilePicturePath, createdAt);
+                               position, phone, annualLeaveBalance, leaves, microsoftId, 
+                               profilePicturePath, createdAt, gender);
         }
     }
 
@@ -280,6 +297,14 @@ public class Employee {
         this.createdAt = createdAt;
     }
 
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -306,6 +331,7 @@ public class Employee {
                 ", microsoftId='" + microsoftId + '\'' +
                 ", profilePicturePath='" + profilePicturePath + '\'' +
                 ", createdAt=" + createdAt +
+                ", gender=" + gender +
                 '}';
     }
 }

@@ -32,6 +32,7 @@ import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.LeaveBalanceDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.LeaveRequestDto;
+import com.hr_management.hr.model.LeaveResponseDto;
 import com.hr_management.hr.model.LeaveStatusUpdateDto;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
@@ -163,8 +164,8 @@ public class LeaveController {
             }
 
             Long employeeId = getEmployeeIdFromUser(currentUser);
-            LeaveDto result = leaveService.createLeaveRequest(employeeId, leaveRequest, document);
-            return ResponseEntity.ok(result);
+            LeaveResponseDto result = leaveService.createLeaveRequest(employeeId, leaveRequest, document);
+            return ResponseEntity.status(result.getStatus()).body(result);
         } catch (LeaveAPIException | IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                 .body(new ErrorResponse(e.getMessage()));

@@ -1,6 +1,7 @@
 package com.hr_management.hr.model;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -173,26 +174,18 @@ public class HolidayDto {
         if (o == null || getClass() != o.getClass()) return false;
         HolidayDto that = (HolidayDto) o;
         return recurring == that.recurring &&
-                (id != null ? id.equals(that.id) : that.id == null) &&
-                (name != null ? name.equals(that.name) : that.name == null) &&
-                (date != null ? date.equals(that.date) : that.date == null) &&
-                (description != null ? description.equals(that.description) : that.description == null) &&
-                (createdBy != null ? createdBy.equals(that.createdBy) : that.createdBy == null) &&
-                (createdAt != null ? createdAt.equals(that.createdAt) : that.createdAt == null) &&
-                (updatedAt != null ? updatedAt.equals(that.updatedAt) : that.updatedAt == null);
+                Objects.equals(id, that.id) &&
+                name.equals(that.name) &&
+                date.equals(that.date) &&
+                Objects.equals(description, that.description) &&
+                Objects.equals(createdBy, that.createdBy) &&
+                Objects.equals(createdAt, that.createdAt) &&
+                Objects.equals(updatedAt, that.updatedAt);
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (name != null ? name.hashCode() : 0);
-        result = 31 * result + (date != null ? date.hashCode() : 0);
-        result = 31 * result + (description != null ? description.hashCode() : 0);
-        result = 31 * result + (recurring ? 1 : 0);
-        result = 31 * result + (createdBy != null ? createdBy.hashCode() : 0);
-        result = 31 * result + (createdAt != null ? createdAt.hashCode() : 0);
-        result = 31 * result + (updatedAt != null ? updatedAt.hashCode() : 0);
-        return result;
+        return Objects.hash(id, name, date, description, recurring, createdBy, createdAt, updatedAt);
     }
 
     @Override

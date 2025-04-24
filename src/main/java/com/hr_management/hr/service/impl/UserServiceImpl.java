@@ -121,6 +121,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         if (profileUpdateDto.getPhone() != null) {
             employee.setPhone(profileUpdateDto.getPhone());
         }
+        if (profileUpdateDto.getGender() != null) {
+            employee.setGender(profileUpdateDto.getGender());
+        }
 
         // Save both entities
         employeeRepository.save(employee);

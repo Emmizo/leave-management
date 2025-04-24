@@ -25,6 +25,7 @@ import com.hr_management.hr.model.EmployeeDto;
 import com.hr_management.hr.model.LeaveBalanceDto;
 import com.hr_management.hr.model.LeaveDto;
 import com.hr_management.hr.model.LeaveRequestDto;
+import com.hr_management.hr.model.LeaveResponseDto;
 import com.hr_management.hr.model.LeaveStatusUpdateDto;
 import com.hr_management.hr.model.UserDto;
 import com.hr_management.hr.repository.EmployeeRepository;
@@ -67,7 +68,7 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Override
     @Transactional
-    public LeaveDto createLeaveRequest(Long employeeId, LeaveRequestDto leaveRequest, MultipartFile supportingDocument) {
+    public LeaveResponseDto createLeaveRequest(Long employeeId, LeaveRequestDto leaveRequest, MultipartFile supportingDocument) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 
@@ -139,7 +140,7 @@ public class LeaveServiceImpl implements LeaveService {
         }
         leave.setLeaveDuration(duration);
 
-        // Store the document if provided
+        // Store the document if provided (optional for non-required leave types)
         if (supportingDocument != null && !supportingDocument.isEmpty()) {
             try {
                 String filePath = fileStorageService.storeFile(supportingDocument, "employee_" + employeeId);
@@ -154,7 +155,7 @@ public class LeaveServiceImpl implements LeaveService {
         // Send email notifications
         emailTemplateService.sendLeaveRequestNotification(savedLeave, employee);
 
-        return convertToDto(savedLeave);
+        return new LeaveResponseDto("Leave request submitted", 201);
     }
 
     private void validateLeaveRequest(Employee employee, LeaveType leaveType, Double numberOfDays, MultipartFile supportingDocument) {

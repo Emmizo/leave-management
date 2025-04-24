@@ -3,6 +3,8 @@ package com.hr_management.hr.model;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.hr_management.hr.enums.Gender;
+
 public class EmployeeDto {
     private Long id;
     private String email;
@@ -16,6 +18,7 @@ public class EmployeeDto {
     private UserDto user;
     private List<LeaveDto> leaves;
     private LocalDateTime createdAt;
+    private Gender gender;
 
     // Default constructor
     public EmployeeDto() {
@@ -24,7 +27,8 @@ public class EmployeeDto {
     // All-args constructor
     public EmployeeDto(Long id, String email, String firstName, String lastName, 
                       String department, String position, String phone, Integer annualLeaveBalance, 
-                      String microsoftId, UserDto user, List<LeaveDto> leaves, LocalDateTime createdAt) {
+                      String microsoftId, UserDto user, List<LeaveDto> leaves, LocalDateTime createdAt,
+                      Gender gender) {
         this.id = id;
         this.email = email;
         this.firstName = firstName;
@@ -37,6 +41,7 @@ public class EmployeeDto {
         this.user = user;
         this.leaves = leaves;
         this.createdAt = createdAt;
+        this.gender = gender;
     }
 
     // Builder pattern
@@ -57,6 +62,7 @@ public class EmployeeDto {
         private UserDto user;
         private List<LeaveDto> leaves;
         private LocalDateTime createdAt;
+        private Gender gender;
 
         public Builder id(Long id) {
             this.id = id;
@@ -118,9 +124,15 @@ public class EmployeeDto {
             return this;
         }
 
+        public Builder gender(Gender gender) {
+            this.gender = gender;
+            return this;
+        }
+
         public EmployeeDto build() {
             return new EmployeeDto(id, email, firstName, lastName, department, 
-                                 position, phone, annualLeaveBalance, microsoftId, user, leaves, createdAt);
+                                 position, phone, annualLeaveBalance, microsoftId, user, 
+                                 leaves, createdAt, gender);
         }
     }
 
@@ -221,6 +233,14 @@ public class EmployeeDto {
         this.createdAt = createdAt;
     }
 
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -237,7 +257,8 @@ public class EmployeeDto {
                 (microsoftId != null ? microsoftId.equals(that.microsoftId) : that.microsoftId == null) &&
                 (user != null ? user.equals(that.user) : that.user == null) &&
                 (leaves != null ? leaves.equals(that.leaves) : that.leaves == null) &&
-                (createdAt != null ? createdAt.equals(that.createdAt) : that.createdAt == null);
+                (createdAt != null ? createdAt.equals(that.createdAt) : that.createdAt == null) &&
+                (gender != null ? gender.equals(that.gender) : that.gender == null);
     }
 
     @Override
@@ -254,6 +275,7 @@ public class EmployeeDto {
         result = 31 * result + (user != null ? user.hashCode() : 0);
         result = 31 * result + (leaves != null ? leaves.hashCode() : 0);
         result = 31 * result + (createdAt != null ? createdAt.hashCode() : 0);
+        result = 31 * result + (gender != null ? gender.hashCode() : 0);
         return result;
     }
 
@@ -272,6 +294,7 @@ public class EmployeeDto {
                 ", user=" + user +
                 ", leaves=" + leaves +
                 ", createdAt=" + createdAt +
+                ", gender=" + gender +
                 '}';
     }
 } 

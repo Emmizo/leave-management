@@ -113,33 +113,60 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequestDto loginRequest) {
         
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginRequest.getUsername(), 
-                loginRequest.getPassword()
-            )
-        );
+        logger.info("Attempting login for identifier: {}", loginRequest.getUsername());
         
-        Object principal = authentication.getPrincipal();
-        if (principal == null) {
-            throw new UsernameNotFoundException("Principal is null after authentication");
-        }
-        
-        if (principal instanceof User user) {
-             // user variable is already cast and available here
-        } else {
-             throw new UsernameNotFoundException("Unexpected principal type after authentication: " + principal.getClass());
-        }
+        try {
+            // First try to find user by username or email
+            User user = userRepository.findByUsername(loginRequest.getUsername())
+                    .orElseGet(() -> userRepository.findByEmail(loginRequest.getUsername())
+                            .orElseThrow(() -> {
+                                logger.error("User not found with identifier: {}", loginRequest.getUsername());
+                                return new UsernameNotFoundException("Invalid username or email");
+                            }));
 
-        String token = jwtService.generateToken(user);
-        
-        EmployeeDto employeeDto = employeeService.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Employee record not found for authenticated user: " + user.getUsername()));
+            logger.info("User found: {}", user.getUsername());
+            
+            // Authenticate with the found user's username
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    user.getUsername(), // Use the actual username for authentication
+                    loginRequest.getPassword()
+                )
+            );
+            
+            logger.info("Authentication successful for user: {}", user.getUsername());
+            
+            Object principal = authentication.getPrincipal();
+            if (principal == null) {
+                logger.error("Principal is null after authentication");
+                throw new UsernameNotFoundException("Principal is null after authentication");
+            }
+            
+            if (principal instanceof User authenticatedUser) {
+                logger.info("User authenticated: {}", authenticatedUser.getUsername());
+            } else {
+                logger.error("Unexpected principal type: {}", principal.getClass());
+                throw new UsernameNotFoundException("Unexpected principal type after authentication: " + principal.getClass());
+            }
 
-        return ResponseEntity.ok(AuthResponse.builder()
-                .token(token)
-                .user(employeeDto)
-                .build());
+            String token = jwtService.generateToken(user);
+            logger.info("JWT token generated for user: {}", user.getUsername());
+            
+            EmployeeDto employeeDto = employeeService.findByUser(user)
+                    .orElseThrow(() -> {
+                        logger.error("Employee record not found for user: {}", user.getUsername());
+                        return new RuntimeException("Employee record not found for authenticated user: " + user.getUsername());
+                    });
+
+            logger.info("Login successful for user: {}", user.getUsername());
+            return ResponseEntity.ok(AuthResponse.builder()
+                    .token(token)
+                    .user(employeeDto)
+                    .build());
+        } catch (Exception e) {
+            logger.error("Login failed for identifier {}: {}", loginRequest.getUsername(), e.getMessage());
+            throw e;
+        }
     }
 
     @PostMapping("/register")
@@ -178,6 +205,7 @@ public class AuthController {
                 .department(registerRequest.getDepartment())
                 .position(registerRequest.getPosition())
                 .email(registerRequest.getEmail())
+                .gender(registerRequest.getGender())
                 .user(UserDto.builder()
                         .id(user.getId())
                         .username(user.getUsername())

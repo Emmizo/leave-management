@@ -71,7 +71,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
         }
         
-        return relativePath;
+        return relativePath; 
     }
 
     @Override

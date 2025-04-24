@@ -1,5 +1,7 @@
 package com.hr_management.hr.model;
 
+import com.hr_management.hr.enums.Gender;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -25,6 +27,7 @@ public class ProfileUpdateDto {
 
     private String phone;
     private String profilePicture;
+    private Gender gender;
 
     // Getters and Setters
     public String getFirstName() {
@@ -89,5 +92,13 @@ public class ProfileUpdateDto {
 
     public void setProfilePicture(String profilePicture) {
         this.profilePicture = profilePicture;
+    }
+
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
     }
 } 

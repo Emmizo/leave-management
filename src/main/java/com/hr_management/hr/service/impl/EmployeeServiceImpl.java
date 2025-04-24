@@ -37,6 +37,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setDepartment(employeeDto.getDepartment());
         employee.setPosition(employeeDto.getPosition());
         employee.setEmail(employeeDto.getEmail());
+        employee.setGender(employeeDto.getGender());
         
         // Set default annual leave balance if not provided
         employee.setAnnualLeaveBalance(Optional.ofNullable(employeeDto.getAnnualLeaveBalance()).orElse(20));
@@ -99,6 +100,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .user(userDto)
                 .leaves(leaveDtos)
                 .createdAt(employee.getCreatedAt())
+                .gender(employee.getGender())
                 .build();
     }
 

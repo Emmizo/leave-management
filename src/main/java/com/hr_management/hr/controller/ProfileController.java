@@ -99,7 +99,7 @@ public class ProfileController {
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ErrorResponse("File is required and cannot be empty"));
-            }
+        }
 
             // Validate file type
             String contentType = file.getContentType();

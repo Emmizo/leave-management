@@ -2,8 +2,9 @@ package com.hr_management.hr.service;
 
 import java.util.List;
 import java.util.Optional;
-import com.hr_management.hr.entity.User;
+
 import com.hr_management.hr.entity.Employee;
+import com.hr_management.hr.entity.User;
 import com.hr_management.hr.model.EmployeeDto;
 
 public interface EmployeeService {

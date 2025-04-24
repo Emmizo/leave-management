@@ -1,5 +1,7 @@
 package com.hr_management.hr.model;
 
+import com.hr_management.hr.enums.Gender;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -33,13 +35,16 @@ public class RegisterRequestDto {
     @NotBlank(message = "Role is required")
     private String role;
 
+    private Gender gender;
+
     // Default constructor
     public RegisterRequestDto() {
     }
 
     // All-args constructor
     public RegisterRequestDto(String username, String password, String email, 
-                             String firstName, String lastName, String department, String position, String role) {
+                             String firstName, String lastName, String department, 
+                             String position, String role, Gender gender) {
         this.username = username;
         this.password = password;
         this.email = email;
@@ -48,6 +53,7 @@ public class RegisterRequestDto {
         this.department = department;
         this.position = position;
         this.role = role;
+        this.gender = gender;
     }
 
     // Getters and Setters
@@ -123,6 +129,14 @@ public class RegisterRequestDto {
         this.phone = phone;
     }
 
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -135,7 +149,8 @@ public class RegisterRequestDto {
                 (lastName != null ? lastName.equals(that.lastName) : that.lastName == null) &&
                 (department != null ? department.equals(that.department) : that.department == null) &&
                 (position != null ? position.equals(that.position) : that.position == null) &&
-                (role != null ? role.equals(that.role) : that.role == null);
+                (role != null ? role.equals(that.role) : that.role == null) &&
+                (gender != null ? gender.equals(that.gender) : that.gender == null);
     }
 
     @Override
@@ -148,6 +163,7 @@ public class RegisterRequestDto {
         result = 31 * result + (department != null ? department.hashCode() : 0);
         result = 31 * result + (position != null ? position.hashCode() : 0);
         result = 31 * result + (role != null ? role.hashCode() : 0);
+        result = 31 * result + (gender != null ? gender.hashCode() : 0);
         return result;
     }
 
@@ -161,6 +177,7 @@ public class RegisterRequestDto {
                 ", department='" + department + '\'' +
                 ", position='" + position + '\'' +
                 ", role='" + role + '\'' +
+                ", gender=" + gender +
                 '}';
     }
 } 
