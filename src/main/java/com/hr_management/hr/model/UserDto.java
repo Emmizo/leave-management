@@ -8,7 +8,7 @@ public class UserDto {
     private String provider;
     private String providerId;
     private boolean enabled = true;
-    private String profilePictureUrl;
+    private String profilePicture;
 
     // Default constructor
     public UserDto() {
@@ -16,7 +16,7 @@ public class UserDto {
 
     // All-args constructor
     public UserDto(Long id, String username, String email, String role, 
-                  String provider, String providerId, boolean enabled, String profilePictureUrl) {
+                  String provider, String providerId, boolean enabled, String profilePicture) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -24,7 +24,7 @@ public class UserDto {
         this.provider = provider;
         this.providerId = providerId;
         this.enabled = enabled;
-        this.profilePictureUrl = profilePictureUrl;
+        this.profilePicture = profilePicture;
     }
 
     // Builder pattern
@@ -40,7 +40,7 @@ public class UserDto {
         private String provider;
         private String providerId;
         private boolean enabled = true;
-        private String profilePictureUrl;
+        private String profilePicture;
 
         public Builder id(Long id) {
             this.id = id;
@@ -77,13 +77,13 @@ public class UserDto {
             return this;
         }
 
-        public Builder profilePictureUrl(String profilePictureUrl) {
-            this.profilePictureUrl = profilePictureUrl;
+        public Builder profilePicture(String profilePicture) {
+            this.profilePicture = profilePicture;
             return this;
         }
 
         public UserDto build() {
-            return new UserDto(id, username, email, role, provider, providerId, enabled, profilePictureUrl);
+            return new UserDto(id, username, email, role, provider, providerId, enabled, profilePicture);
         }
     }
 
@@ -144,12 +144,12 @@ public class UserDto {
         this.enabled = enabled;
     }
 
-    public String getProfilePictureUrl() {
-        return profilePictureUrl;
+    public String getProfilePicture() {
+        return profilePicture;
     }
 
-    public void setProfilePictureUrl(String profilePictureUrl) {
-        this.profilePictureUrl = profilePictureUrl;
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
 
     @Override

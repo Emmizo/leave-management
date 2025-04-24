@@ -46,8 +46,12 @@ public class User implements UserDetails {
     private String provider;
     private String providerId;
 
+    @Column(name = "microsoft_id")
     private String microsoftId;
-    
+
+    @Column(name = "access_token")
+    private String accessToken;
+
     @Column(columnDefinition = "BOOLEAN DEFAULT true")
     private boolean enabled = true;
 
@@ -262,6 +266,14 @@ public class User implements UserDetails {
 
     public void setProfilePictureUrl(String profilePictureUrl) {
         this.profilePictureUrl = profilePictureUrl;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
     }
 
     @Override

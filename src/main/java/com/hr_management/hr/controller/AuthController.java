@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hr_management.hr.entity.Employee;
@@ -62,10 +61,10 @@ public class AuthController {
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final OAuth2AuthorizedClientService clientService;
     private final HtmlEmailTemplateService htmlEmailTemplateService;
     private final AuthService authService;
     private final MicrosoftAuthService microsoftAuthService;
+    private final OAuth2AuthorizedClientService clientService;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
@@ -77,10 +76,10 @@ public class AuthController {
             UserRepository userRepository,
             EmployeeRepository employeeRepository,
             PasswordEncoder passwordEncoder,
-            OAuth2AuthorizedClientService clientService,
             HtmlEmailTemplateService htmlEmailTemplateService,
             AuthService authService,
-            MicrosoftAuthService microsoftAuthService) {
+            MicrosoftAuthService microsoftAuthService,
+            OAuth2AuthorizedClientService clientService) {
         this.userService = userService;
         this.employeeService = employeeService;
         this.authenticationManager = authenticationManager;
@@ -88,10 +87,10 @@ public class AuthController {
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
-        this.clientService = clientService;
         this.htmlEmailTemplateService = htmlEmailTemplateService;
         this.authService = authService;
         this.microsoftAuthService = microsoftAuthService;
+        this.clientService = clientService;
     }
 
     @PostMapping("/login")
@@ -154,9 +153,9 @@ public class AuthController {
             return ResponseEntity.ok(AuthResponse.builder()
                     .token(token)
                     .user(employeeDto)
-                    .profilePictureUrl(user.getProfilePictureUrl())
+                    .profilePicture(user.getProfilePicture())
                     .build());
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.error("Login failed for identifier {}: {}", loginRequest.getUsername(), e.getMessage());
             throw e;
         }
@@ -272,11 +271,12 @@ public class AuthController {
         User user = (User) authentication.getPrincipal();
         EmployeeDto employee = employeeService.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
-        employee.setProfilePictureUrl(user.getProfilePictureUrl());
+        if (employee.getUser() != null) {
+            employee.getUser().setProfilePicture(user.getProfilePicture());
+        }
         return ResponseEntity.ok(employee);
     }
 
-    // @GetMapping("/microsoft/login")
     @PostMapping("/microsoft/login")
     @Operation(summary = "Initiate Microsoft login", 
                description = "Initiates the Microsoft OAuth login flow. Returns the authorization URL to redirect the user to Microsoft's login page.",
@@ -285,57 +285,39 @@ public class AuthController {
         @ApiResponse(responseCode = "200", description = "Authorization URL generated successfully"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<String> initiateMicrosoftLogin() {
+    public ResponseEntity<String> microsoftLogin() {
         String state = UUID.randomUUID().toString();
         String authorizationUrl = microsoftAuthService.getAuthorizationUrl(state);
         return ResponseEntity.ok(authorizationUrl);
     }
 
-    // @GetMapping("/microsoft/callback")
     @PostMapping("/microsoft/callback")
-    public ResponseEntity<AuthResponse> microsoftCallback(
-            @RequestParam(value = "code", required = false) String code,
-            @RequestParam(value = "state", required = false) String state,
-            @RequestParam(value = "error", required = false) String error,
-            @RequestBody(required = false) Map<String, String> body) {
+    public ResponseEntity<?> microsoftCallback(@RequestBody Map<String, String> params) {
         try {
-            if (error != null) {
-                logger.error("Microsoft authentication error: {}", error);
-                return ResponseEntity.badRequest().build();
-            }
-
-            String authCode = code != null ? code : body.get("code");
-            if (authCode == null) {
-                logger.error("No authorization code provided");
-                return ResponseEntity.badRequest().build();
-            }
-
-            Map<String, Object> tokenResponse = microsoftAuthService.exchangeCodeForTokens(authCode);
-            if (tokenResponse == null || !tokenResponse.containsKey("access_token")) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-
-            // Get user info using the access token
+            String code = params.get("code");
+            // String state = params.get("state");
+            Map<String, Object> tokenResponse = microsoftAuthService.exchangeCodeForTokens(code);
             String accessToken = (String) tokenResponse.get("access_token");
             Map<String, Object> userInfo = microsoftAuthService.getUserInfo(accessToken);
-            
-            // Create or update user
             User user = microsoftAuthService.createOrUpdateUser(userInfo);
-            
-            // Get employee info
             EmployeeDto employeeDto = employeeService.findByUser(user)
                     .orElseThrow(() -> new RuntimeException("Employee record not found"));
-            
-            // Generate JWT token
             String jwtToken = jwtService.generateToken(user);
             
+            // Update the nested user object with the profile picture URL
+            if (employeeDto.getUser() != null) {
+                employeeDto.getUser().setProfilePicture(user.getProfilePicture());
+            }
+            
             return ResponseEntity.ok(AuthResponse.builder()
-                .token(jwtToken)
-                .user(employeeDto)
-                .build());
+                    .token(jwtToken)
+                    .user(employeeDto)
+                    .profilePicture(user.getProfilePicture())
+                    .build());
         } catch (Exception e) {
-            logger.error("Error during Microsoft authentication", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.error("Error during Microsoft authentication: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to authenticate with Microsoft"));
         }
     }
 
@@ -428,7 +410,7 @@ public class AuthController {
                 .username(updatedUser.getUsername())
                 .email(updatedUser.getEmail())
                 .role(updatedUser.getRole().name())
-                .profilePictureUrl(updatedUser.getProfilePictureUrl())
+                .profilePicture(updatedUser.getProfilePicture())
                 .build();
 
         return ResponseEntity.ok(userDto);

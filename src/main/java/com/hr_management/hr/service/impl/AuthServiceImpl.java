@@ -68,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
             user.setEmail(request.getEmail());
             user.setRole(Role.valueOf(request.getRole().toUpperCase()));
             user.setEnabled(true);
-            user.setProfilePictureUrl(""); // Set default empty string
+            user.setProfilePicture(""); // Set default empty string
             user = userRepository.save(user);
 
             // Create employee record
@@ -100,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
             // Send welcome email with the random password
             htmlEmailTemplateService.sendWelcomeEmail(user, employee, randomPassword);
 
-            return new AuthResponse(token, employeeDto, user.getProfilePictureUrl());
+            return new AuthResponse(token, employeeDto, user.getProfilePicture());
         } catch (Exception e) {
             log.error("Error during registration: {}", e.getMessage());
             throw new RuntimeException("Error during registration: " + e.getMessage());

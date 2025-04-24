@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hr_management.hr.entity.User;
 import com.hr_management.hr.exception.ResourceNotFoundException;
 import com.hr_management.hr.model.UserDto;
-import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,11 +30,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class UserController {
 
     private final UserRepository userRepository;
-    private final EmployeeRepository employeeRepository;
 
-    public UserController(UserRepository userRepository, EmployeeRepository employeeRepository) {
+    public UserController(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.employeeRepository = employeeRepository;
     }
 
     @GetMapping
@@ -52,12 +49,7 @@ public class UserController {
         List<User> users = userRepository.findAll();
         
         List<UserDto> userDtos = users.stream()
-            .map(user -> {
-                String position = employeeRepository.findByUser(user)
-                    .map(employee -> employee.getPosition())
-                    .orElse("Not assigned");
-                
-                return UserDto.builder()
+            .map(user -> UserDto.builder()
                     .id(user.getId())
                     .username(user.getUsername())
                     .email(user.getEmail())
@@ -65,8 +57,7 @@ public class UserController {
                     .provider(user.getProvider())
                     .providerId(user.getProviderId())
                     .enabled(user.isEnabled())
-                    .build();
-            })
+                    .build())
             .collect(Collectors.toList());
         
         return ResponseEntity.ok(userDtos);
@@ -96,10 +87,6 @@ public class UserController {
 
         user.setEnabled(enabled);
         User updatedUser = userRepository.save(user);
-
-        String position = employeeRepository.findByUser(updatedUser)
-                .map(employee -> employee.getPosition())
-                .orElse("Not assigned");
 
         UserDto userDto = UserDto.builder()
                 .id(updatedUser.getId())

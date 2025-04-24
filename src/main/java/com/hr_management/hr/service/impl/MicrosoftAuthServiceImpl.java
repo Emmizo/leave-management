@@ -18,6 +18,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.hr_management.hr.config.ApplicationProperties;
 import com.hr_management.hr.config.MicrosoftOAuthProperties;
 import com.hr_management.hr.entity.Employee;
 import com.hr_management.hr.entity.Role;
@@ -37,18 +38,21 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
     private final PasswordEncoder passwordEncoder;
     private final RestTemplate restTemplate;
     private final MicrosoftOAuthProperties microsoftProperties;
+    private final ApplicationProperties appProperties;
 
     public MicrosoftAuthServiceImpl(
             UserRepository userRepository,
             EmployeeRepository employeeRepository,
             PasswordEncoder passwordEncoder,
             RestTemplate restTemplate,
-            MicrosoftOAuthProperties microsoftProperties) {
+            MicrosoftOAuthProperties microsoftProperties,
+            ApplicationProperties appProperties) {
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.restTemplate = restTemplate;
         this.microsoftProperties = microsoftProperties;
+        this.appProperties = appProperties;
     }
 
     @Override
@@ -121,20 +125,26 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
         Map<String, Object> userInfo = response.getBody();
         
         // Get photo URL
-        String photoEndpoint = "https://graph.microsoft.com/v1.0/me/photo";
+        String userId = (String) userInfo.get("id");
+        String photoUrl = String.format("https://graph.microsoft.com/v1.0/users/%s/photo/$value", userId);
+        
         try {
-            ResponseEntity<Map> photoResponse = restTemplate.exchange(
-                photoEndpoint,
+            // Try to access the photo to verify it exists
+            HttpEntity<?> photoRequest = new HttpEntity<>(headers);
+            ResponseEntity<byte[]> photoResponse = restTemplate.exchange(
+                photoUrl,
                 HttpMethod.GET,
-                request,
-                Map.class
+                photoRequest,
+                byte[].class
             );
             
-            if (photoResponse.getBody() != null) {
-                userInfo.put("photoUrl", String.format("https://graph.microsoft.com/v1.0/users/%s/photo/$value", userInfo.get("id")));
-            }
+            // If we get here, the photo exists - store the full URL for our proxy endpoint
+            userInfo.put("photoUrl", String.format("%s/api/users/%s/photo", appProperties.getBaseUrl(), userId));
+            logger.info("Successfully verified profile picture for user: {} with ID: {}", userInfo.get("userPrincipalName"), userId);
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             logger.warn("Could not fetch photo URL: {}", e.getMessage());
+            // Set a default empty string if photo URL cannot be fetched
+            userInfo.put("photoUrl", "");
         }
 
         return userInfo;
@@ -153,6 +163,7 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
         String microsoftUserId = (String) userInfo.get("id");
         String gender = (String) userInfo.get("gender");
         String profilePictureUrl = (String) userInfo.get("photoUrl");
+        String accessToken = (String) userInfo.get("access_token");
 
         if (email == null) {
             logger.error("Could not determine email (mail or userPrincipalName) from Microsoft user info: {}", userInfo);
@@ -169,11 +180,14 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
         if (existingUser.isPresent()) {
             user = existingUser.get();
             logger.info("Found existing user for Microsoft sign-in: {}", email);
-            // Update profile picture URL if it's null or empty
-            if ((user.getProfilePictureUrl() == null || user.getProfilePictureUrl().isEmpty()) && profilePictureUrl != null) {
-                user.setProfilePictureUrl(profilePictureUrl);
-                userRepository.save(user);
+            // Always update profile picture for Microsoft users
+            if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
+                user.setProfilePicture(profilePictureUrl);
             }
+            // Store the access token
+            user.setAccessToken(accessToken);
+            user = userRepository.save(user);
+            logger.info("Updated profile picture for user: {} with URL: {}", email, profilePictureUrl);
         } else {
             logger.info("Creating new user for Microsoft sign-in: {}", email);
             user = new User();
@@ -181,8 +195,10 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
             user.setUsername(email);
             user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
             user.setRole(Role.EMPLOYEE);
-            user.setProfilePictureUrl(profilePictureUrl);
+            // Set profile picture URL for new users if available
+            user.setProfilePicture(profilePictureUrl != null ? profilePictureUrl : "");
             user = userRepository.save(user);
+            logger.info("Created new user with profile picture: {} with URL: {}", email, profilePictureUrl);
         }
 
         // Find or create employee record
@@ -235,7 +251,7 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
         
         employeeRepository.save(employee);
 
-        logger.info("Successfully processed user and employee record for Microsoft sign-in: {}", email);
+        logger.info("Successfully processed user and employee record for Microsoft sign-in: {} with profile picture: {}", email, user.getProfilePicture());
         return user;
     }
 
@@ -245,7 +261,7 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
             throw new IllegalArgumentException("User or Microsoft ID cannot be null");
         }
 
-        String profilePictureUrl = String.format("https://graph.microsoft.com/v1.0/users/%s/photo/$value", user.getMicrosoftId());
+        String profilePictureUrl = String.format("%s/api/users/%s/photo", appProperties.getBaseUrl(), user.getMicrosoftId());
         user.setProfilePictureUrl(profilePictureUrl);
         return userRepository.save(user);
     }
