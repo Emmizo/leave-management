@@ -49,7 +49,7 @@ public class User implements UserDetails {
     @Column(name = "microsoft_id")
     private String microsoftId;
 
-    @Column(name = "access_token")
+    @Column(name = "access_token", columnDefinition = "TEXT")
     private String accessToken;
 
     @Column(columnDefinition = "BOOLEAN DEFAULT true")

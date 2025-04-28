@@ -8,15 +8,19 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.hr_management.hr.config.ApplicationProperties;
 import com.hr_management.hr.config.MicrosoftOAuthProperties;
@@ -26,6 +30,7 @@ import com.hr_management.hr.entity.User;
 import com.hr_management.hr.enums.Gender;
 import com.hr_management.hr.repository.EmployeeRepository;
 import com.hr_management.hr.repository.UserRepository;
+import com.hr_management.hr.service.FileStorageService;
 import com.hr_management.hr.service.MicrosoftAuthService;
 
 @Service
@@ -39,6 +44,7 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
     private final RestTemplate restTemplate;
     private final MicrosoftOAuthProperties microsoftProperties;
     private final ApplicationProperties appProperties;
+    private final FileStorageService fileStorageService;
 
     public MicrosoftAuthServiceImpl(
             UserRepository userRepository,
@@ -46,13 +52,15 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
             PasswordEncoder passwordEncoder,
             RestTemplate restTemplate,
             MicrosoftOAuthProperties microsoftProperties,
-            ApplicationProperties appProperties) {
+            ApplicationProperties appProperties,
+            FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.restTemplate = restTemplate;
         this.microsoftProperties = microsoftProperties;
         this.appProperties = appProperties;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -126,13 +134,13 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
         
         // Get photo URL
         String userId = (String) userInfo.get("id");
-        String photoUrl = String.format("https://graph.microsoft.com/v1.0/users/%s/photo/$value", userId);
+        String msPhotoUrl = "https://graph.microsoft.com/v1.0/users/" + userId + "/photo/$value";
         
         try {
             // Try to access the photo to verify it exists
             HttpEntity<?> photoRequest = new HttpEntity<>(headers);
             ResponseEntity<byte[]> photoResponse = restTemplate.exchange(
-                photoUrl,
+                msPhotoUrl,
                 HttpMethod.GET,
                 photoRequest,
                 byte[].class
@@ -182,12 +190,33 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
             logger.info("Found existing user for Microsoft sign-in: {}", email);
             // Always update profile picture for Microsoft users
             if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
-                user.setProfilePicture(profilePictureUrl);
+                try {
+                    // Download the image from Microsoft
+                    String msPhotoUrl = "https://graph.microsoft.com/v1.0/users/" + microsoftUserId + "/photo/$value";
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setBearerAuth(accessToken);
+                    ResponseEntity<byte[]> response = restTemplate.exchange(
+                        msPhotoUrl, HttpMethod.GET, new HttpEntity<>(headers), byte[].class);
+                    if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                        byte[] imageBytes = response.getBody();
+                        // Save to uploads using FileStorageService
+                        MultipartFile multipartFile = new ByteArrayMultipartFile(
+                            imageBytes, "file", "profile.jpg", "image/jpeg");
+                        String filePath = fileStorageService.storeFile(multipartFile, "profile_" + user.getId());
+                        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+                        String fullUrl = baseUrl + "/uploads/" + filePath.replace("\\", "/");
+                        user.setProfilePicture(fullUrl);
+                    } else {
+                        user.setProfilePicture(""); // fallback if download fails
+                    }
+                } catch (Exception e) {
+                    user.setProfilePicture(""); // fallback if error
+                }
             }
             // Store the access token
             user.setAccessToken(accessToken);
             user = userRepository.save(user);
-            logger.info("Updated profile picture for user: {} with URL: {}", email, profilePictureUrl);
+            logger.info("Updated profile picture for user: {} with URL: {}", email, user.getProfilePicture());
         } else {
             logger.info("Creating new user for Microsoft sign-in: {}", email);
             user = new User();
@@ -196,9 +225,32 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
             user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
             user.setRole(Role.EMPLOYEE);
             // Set profile picture URL for new users if available
-            user.setProfilePicture(profilePictureUrl != null ? profilePictureUrl : "");
+            if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
+                try {
+                    // Download the image from Microsoft
+                    String msPhotoUrl = "https://graph.microsoft.com/v1.0/users/" + microsoftUserId + "/photo/$value";
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setBearerAuth(accessToken);
+                    ResponseEntity<byte[]> response = restTemplate.exchange(
+                        msPhotoUrl, HttpMethod.GET, new HttpEntity<>(headers), byte[].class);
+                    if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                        byte[] imageBytes = response.getBody();
+                        // Save to uploads using FileStorageService
+                        MultipartFile multipartFile = new ByteArrayMultipartFile(
+                            imageBytes, "file", "profile.jpg", "image/jpeg");
+                        String filePath = fileStorageService.storeFile(multipartFile, "profile_" + user.getId());
+                        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+                        String fullUrl = baseUrl + "/uploads/" + filePath.replace("\\", "/");
+                        user.setProfilePicture(fullUrl);
+                    } else {
+                        user.setProfilePicture(""); // fallback if download fails
+                    }
+                } catch (Exception e) {
+                    user.setProfilePicture(""); // fallback if error
+                }
+            }
             user = userRepository.save(user);
-            logger.info("Created new user with profile picture: {} with URL: {}", email, profilePictureUrl);
+            logger.info("Created new user with profile picture: {} with URL: {}", email, user.getProfilePicture());
         }
 
         // Find or create employee record
@@ -264,5 +316,51 @@ public class MicrosoftAuthServiceImpl implements MicrosoftAuthService {
         String profilePictureUrl = String.format("%s/api/users/%s/photo", appProperties.getBaseUrl(), user.getMicrosoftId());
         user.setProfilePictureUrl(profilePictureUrl);
         return userRepository.save(user);
+    }
+
+    // Helper class for MultipartFile from byte[]
+    class ByteArrayMultipartFile extends ByteArrayResource implements MultipartFile {
+        private final String name;
+        private final String originalFilename;
+        private final String contentType;
+
+        public ByteArrayMultipartFile(byte[] byteArray, String name, String originalFilename, String contentType) {
+            super(byteArray);
+            this.name = name;
+            this.originalFilename = originalFilename;
+            this.contentType = contentType;
+        }
+
+        @Override
+        public String getName() { return name; }
+
+        @Override
+        public String getOriginalFilename() { return originalFilename; }
+
+        @Override
+        public String getContentType() { return contentType; }
+
+        @Override
+        public boolean isEmpty() { return getByteArray().length == 0; }
+
+        @Override
+        public long getSize() { return getByteArray().length; }
+
+        @Override
+        public byte[] getBytes() { return getByteArray(); }
+
+        @Override
+        public java.io.InputStream getInputStream() throws java.io.IOException {
+            return super.getInputStream();
+        }
+
+        @Override
+        public void transferTo(java.io.File dest) throws java.lang.IllegalStateException {
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(dest)) {
+                fos.write(getByteArray());
+            } catch (java.io.IOException e) {
+                throw new RuntimeException("Failed to transfer file", e);
+            }
+        }
     }
 } 

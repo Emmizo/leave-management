@@ -70,6 +70,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         try (InputStream inputStream = file.getInputStream()) {
             Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
         }
+        System.out.println("File stored at: " + targetLocation.toAbsolutePath());
         
         return relativePath; 
     }

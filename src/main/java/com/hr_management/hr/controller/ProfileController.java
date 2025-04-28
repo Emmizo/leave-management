@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.hr_management.hr.entity.Role;
 import com.hr_management.hr.entity.User;
@@ -129,10 +130,12 @@ public class ProfileController {
 
             // Store the file and get the path
             String filePath = fileStorageService.storeFile(file, "profile_" + user.getId());
+            String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+            String fullUrl = baseUrl + "/uploads/" + filePath.replace("\\", "/");
             
             // Create a minimal profile update DTO with just the profile picture path
             ProfileUpdateDto profileUpdate = new ProfileUpdateDto();
-            profileUpdate.setProfilePicture(filePath);
+            profileUpdate.setProfilePicture(fullUrl);
             
             // Update the user's profile
             userService.updateProfile(user.getId(), profileUpdate);

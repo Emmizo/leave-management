@@ -125,6 +125,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             employee.setGender(profileUpdateDto.getGender());
         }
 
+        // Set profile picture if present
+        if (profileUpdateDto.getProfilePicture() != null) {
+            user.setProfilePicture(profileUpdateDto.getProfilePicture());
+        }
+
         // Save both entities
         employeeRepository.save(employee);
         return userRepository.save(user);

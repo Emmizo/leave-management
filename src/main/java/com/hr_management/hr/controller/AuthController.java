@@ -299,6 +299,7 @@ public class AuthController {
             Map<String, Object> tokenResponse = microsoftAuthService.exchangeCodeForTokens(code);
             String accessToken = (String) tokenResponse.get("access_token");
             Map<String, Object> userInfo = microsoftAuthService.getUserInfo(accessToken);
+            userInfo.put("access_token", accessToken); // Ensure access token is available for profile picture download
             User user = microsoftAuthService.createOrUpdateUser(userInfo);
             EmployeeDto employeeDto = employeeService.findByUser(user)
                     .orElseThrow(() -> new RuntimeException("Employee record not found"));
